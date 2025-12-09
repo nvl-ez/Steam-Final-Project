@@ -1,0 +1,56 @@
+
+```{r}
+library(dplyr)
+library(purrr)
+library(stringr)
+```
+
+
+```{r}
+steam = read.csv("data/kaggle_march2025_full.csv")
+```
+
+# Create Dataset for this Section
+Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
+
+```{r}
+# Funcion helper 
+get_unique_list_values <- function(x) {
+  x <- x[x != "[]"]
+  x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
+  x <- gsub("['\"]", "", x)# quitar ' y "
+  
+  elements <- strsplit(x, ",") # dividr por comas
+
+  vals <- trimws(unlist(elements, use.names = FALSE)) # aplanar y trim
+  vals <- vals[vals != ""]
+  
+  sort(unique(vals))
+}
+```
+
+Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
+```{r}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
+
+
+## Obtain Unique values for different columns
+```{r}
+categories <- get_unique_list_values(steam$categories)
+categories
+```
+
+```{r}
+tags <- get_unique_dict_keys(steam$tags)
+tags
+```
+
