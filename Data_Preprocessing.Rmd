@@ -60,7 +60,7 @@ The dataset we will be working with contains a total number of 94948 observation
 -   **`metacritic_url`**: Metacritic's URL to the game. [text]
 -   **`achievements`**: Number of achievements the game has. [num]
 -   **`recommendations``**: Ammount of user recommendations. [num]
--   **`notes`**: Extra information abut the game content. [text]
+-   **`notes`**: Disclaimers about the game's content. [text]
 -   **`supported_languages`**: List of languages that the game supports.[**NO SÉ QUE CATEGORÍA DARLE**]
 -   **`full_audio_languages`**: List of languages with audio support for the game. [**LO MISMO QUE ARRIBA**]
 -   **`packages`**: Avaliable packages for the game. It contains the name and a description of the package and the names, descriptions and subprices of the subpackages. [**LO MISMO QUE ARRIBA**]

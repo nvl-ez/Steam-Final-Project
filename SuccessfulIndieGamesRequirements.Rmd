@@ -59,51 +59,157 @@ steam_genres
 steam_tags <- get_unique_dict_keys(steam$tags)
 steam_tags
 ```
-Genres pertaining to games are mixed from steam's own genres and tags. Genres that might represent non-game software are removed to reduce noise.
+From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
 ```{r}
 genres <- c(
+  # Core action/adventure/RPG
   "Action", "Adventure", "Action-Adventure",
   "RPG", "Action RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Party-Based RPG",
+  
+  # Strategy & tactics
   "Strategy", "Real Time Tactics", "Grand Strategy", "Turn-Based Strategy",
   "RTS", "Action RTS", "Tower Defense", "Wargame",
+  
+  # Simulation & management
   "Simulation", "Life Sim", "Farming Sim", "Medical Sim", "Outbreak Sim",
   "City Builder", "Colony Sim", "Management", "Hobby Sim",
+  
+  # Sports & subgenres
   "Sports", "Football", "Football (American)", "Football (Soccer)", "Soccer",
   "Basketball", "Baseball", "Hockey", "Tennis", "Golf", "Mini Golf", "Rugby",
+  
+  # Racing & vehicles
   "Racing", "Combat Racing", "Motocross", "Motorbike", "Automobile Sim",
   "Skateboarding", "Skating", "Skiing", "Snowboarding", "BMX",
+  
+  # Fighting
   "Fighting", "2D Fighter", "3D Fighter", "Martial Arts", "Spectacle fighter",
+  
+  # Platformers
   "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
-  "Metroidvania", "Runner","Rogue-like", "Rogue-lite", "Traditional Roguelike",
+  
+  # Structural subgenres
+  "Metroidvania", "Runner", "Rogue-like", "Rogue-lite", "Traditional Roguelike",
   "Roguelike Deckbuilder", "Roguevania", "Action Roguelike",
+  "Souls-like",
+  
+  # Shooters
   "Battle Royale", "Boomer Shooter", "Arena Shooter", "Hero Shooter",
-  "Souls-like", "Extraction Shooter", "Looter Shooter",
+  "On-Rails Shooter", "Twin Stick Shooter",
+  "Third-Person Shooter", "Top-Down Shooter",
+  "Extraction Shooter", "Looter Shooter",
+  
+  # Narrative
   "Visual Novel", "Dating Sim", "Otome",
   "Hidden Object", "Point & Click",
-  "Rhythm", "Card Game", "Card Battler", "Deckbuilding", "Trading Card Game",
+  
+  # Card/board 
+  "Rhythm", "Card Game", "Trading Card Game",
   "Tabletop", "Board Game", "Mahjong", "Sokoban", "Solitaire", "Word Game",
+  
+  # Puzzle
   "Puzzle", "Puzzle-Platformer", "Tile-Matching", "Match 3",
+  
+  # Idle / god
   "Clicker", "Idler", "God Game",
+  
+  # Sandbox
   "Sandbox", "Open World", "Open World Survival Craft",
+  
+  # Online competitive/co-op genres
   "MMORPG", "MOBA",
+  
+  # Other experiential subgenres
   "Walking Simulator",
   "Immersive Sim",
   "Job Simulator"
 )
+
+mechanics <- c(
+  # Economy, building, resources
+  "Base-Building", "Building", "Resource Management", "Inventory Management",
+  "Crafting", "Automation", "Mining", "Farming",
+  
+  # Customization
+  "Gun Customization", "Character Customization",
+  
+  # Movement & combat style
+  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper",
+  
+  # Physics & destruction
+  "Physics", "Destruction",
+  
+  # Failure / run structure
+  "Permadeath", "Perma Death",
+  
+  # Procedural content
+  "Procedural Generation", "Music-Based Procedural Generation",
+  
+  # Tempo / timing
+  "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
+  "Real-Time", "Real-Time with Pause",
+  "Time Manipulation", "Time Management", "Time Attack",
+  
+  # Spatial rules
+  "Grid-Based Movement", "Hex Grid",
+  
+  # Input/response
+  "Quick-Time Events",
+  
+  # Narrative logic
+  "Choices Matter", "Multiple Endings", "Nonlinear",
+  
+  # Exploration & structure
+  "Exploration", "Dungeon Crawler", "Collectathon",
+  "Boss Rush", "Side Scroller", "Loot", 
+  
+  # Social logic
+  "Social Deduction",
+  
+  # Card/Deck mechanics
+  "Deckbuilding", "Card Battler",
+  
+  # Programming
+  "Programming", "Coding",
+  
+  # Economy
+  "Trading", "Economy", "Capitalism",
+  "Diplomacy",
+  
+  # Modding / creation
+  "Level Editor", "Moddable", "Mod",
+  
+  # Onboarding
+  "Tutorial"
+)
+
+characteristics <- c(
+  # Dimensionality & camera
+  "2D", "2.5D", "3D",
+  "Isometric", "Top-Down",
+  "6DOF",
+  "First-Person", "Third Person",
+  
+  # VR
+  "VR", "VR Only", "Asymmetric VR",
+  
+  # Player count / mode
+  "Singleplayer",
+  "Multiplayer", "Massively Multiplayer",
+  "Co-op", "Local Co-Op", "Online Co-Op", "Co-op Campaign",
+  "4 Player Local", "Split Screen",
+  
+  # Team/role structure
+  "PvP", "PvE", "Team-Based",
+  "Asynchronous Multiplayer",
+  
+  # Competitive/e-sports
+  "e-sports"
+)
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-Obtain Indie Games
+Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
 ```{r}
 indie <- c("Crowdfunded", "Kickstarter", "Indie")
 indie_pattern <- str_c(indie, collapse = "|")
@@ -112,8 +218,13 @@ indie_games <- steam %>%
   filter(
     if_any(
       c(categories, genres, tags),
-      ~ str_detect(.x, pattern)
+      ~ str_detect(.x, indie_pattern)
     )
   )
+```
+
+From the indie_games dataset, only the valuable variables for our study will be kept
+```{r}
+indie_games <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, categories, genres, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, tags, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
 ```
 
