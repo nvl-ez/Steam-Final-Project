@@ -3,6 +3,7 @@
 library(dplyr)
 library(purrr)
 library(stringr)
+library(tidyr)
 ```
 
 
@@ -45,12 +46,74 @@ get_unique_dict_keys <- function(x) {
 
 ## Obtain Unique values for different columns
 ```{r}
-categories <- get_unique_list_values(steam$categories)
-categories
+steam_categories <- get_unique_list_values(steam$categories)
+steam_categories
+```
+```{r}
+steam_genres <- get_unique_list_values(steam$genres)
+steam_genres
 ```
 
+
 ```{r}
-tags <- get_unique_dict_keys(steam$tags)
-tags
+steam_tags <- get_unique_dict_keys(steam$tags)
+steam_tags
+```
+Genres pertaining to games are mixed from steam's own genres and tags. Genres that might represent non-game software are removed to reduce noise.
+```{r}
+genres <- c(
+  "Action", "Adventure", "Action-Adventure",
+  "RPG", "Action RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Party-Based RPG",
+  "Strategy", "Real Time Tactics", "Grand Strategy", "Turn-Based Strategy",
+  "RTS", "Action RTS", "Tower Defense", "Wargame",
+  "Simulation", "Life Sim", "Farming Sim", "Medical Sim", "Outbreak Sim",
+  "City Builder", "Colony Sim", "Management", "Hobby Sim",
+  "Sports", "Football", "Football (American)", "Football (Soccer)", "Soccer",
+  "Basketball", "Baseball", "Hockey", "Tennis", "Golf", "Mini Golf", "Rugby",
+  "Racing", "Combat Racing", "Motocross", "Motorbike", "Automobile Sim",
+  "Skateboarding", "Skating", "Skiing", "Snowboarding", "BMX",
+  "Fighting", "2D Fighter", "3D Fighter", "Martial Arts", "Spectacle fighter",
+  "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
+  "Metroidvania", "Runner","Rogue-like", "Rogue-lite", "Traditional Roguelike",
+  "Roguelike Deckbuilder", "Roguevania", "Action Roguelike",
+  "Battle Royale", "Boomer Shooter", "Arena Shooter", "Hero Shooter",
+  "Souls-like", "Extraction Shooter", "Looter Shooter",
+  "Visual Novel", "Dating Sim", "Otome",
+  "Hidden Object", "Point & Click",
+  "Rhythm", "Card Game", "Card Battler", "Deckbuilding", "Trading Card Game",
+  "Tabletop", "Board Game", "Mahjong", "Sokoban", "Solitaire", "Word Game",
+  "Puzzle", "Puzzle-Platformer", "Tile-Matching", "Match 3",
+  "Clicker", "Idler", "God Game",
+  "Sandbox", "Open World", "Open World Survival Craft",
+  "MMORPG", "MOBA",
+  "Walking Simulator",
+  "Immersive Sim",
+  "Job Simulator"
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+Obtain Indie Games
+```{r}
+indie <- c("Crowdfunded", "Kickstarter", "Indie")
+indie_pattern <- str_c(indie, collapse = "|")
+
+indie_games <- steam %>% 
+  filter(
+    if_any(
+      c(categories, genres, tags),
+      ~ str_detect(.x, pattern)
+    )
+  )
 ```
 
