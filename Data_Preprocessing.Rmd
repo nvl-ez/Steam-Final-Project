@@ -1,0 +1,113 @@
+---
+title: "Data_Preprocessing"
+author: "Arturo"
+date: "2025-12-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+
+```{r libraries, echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(knitr)
+library(tidyverse)
+```
+
+
+```{r loading data, echo = FALSE}
+steam = read.csv("data/kaggle_march2025_full.csv")
+```
+
+
+```{r info of the dataset, echo = FALSE}
+str(steam)
+```
+
+**IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
+
+**NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
+
+
+The dataset we will be working with contains a total number of 94948 observations and 47 columns or variables. The columns are described bellow:
+
+-   **`appid`**: Unique idetnifier of the game on Steam. [num]
+-   **`name`**: Name of the game. [text]
+-   **`released_date``**: Represents the date where the game was released. [text]
+-   **`required_age``**: Corresponds to the minimum age required to play the game. [num]
+-   **`price`**: How much the game costs. If its 0 it means that the game is Free to Play. [num]
+-   **`dlc_count`**: Ammount of DLCs (Downloadable Contents) the game has. [num]
+-   **`detailed_description`**: Contains the detailed description of the game. [text]
+-   **`about_the_game`**: Cointains information about the game. [text]
+-   **`short_description`**: Provides a short descrpition of the game. [text]
+-   **`reviews``**: _NO ESTOY ENCONTRANDO INFO_
+-   **`header_image`**: Contains the URL to the header image of the game. [text]
+-   **`website`**: Contains the URL to the official website of the game. [text]
+-   **`suppport_url`**: URL to the support page of the game. [text]
+-   **`support_email`**: Email of the game support team. [text]
+-   **`windows`**: Determines if the game runs in windows. [categorical]
+-   **`mac`**: Determines if the game runs in mac. [categorical]
+-   **`linux`**: Determines if the game runs in linux. [categorical]
+-   **`metacritic_score`**: Metacritic score based on critcical reviews (reviews from professionalss). By performing an investigation we think that an score of 0 means that when the scraping of the data was done there where no reviews for that game yet. [num]
+-   **`metacritic_url`**: Metacritic's URL to the game. [text]
+-   **`achievements`**: Number of achievements the game has. [num]
+-   **`recommendations``**: Ammount of user recommendations. [num]
+-   **`notes`**: Extra information abut the game content. [text]
+-   **`supported_languages`**: List of languages that the game supports.[**NO SÉ QUE CATEGORÍA DARLE**]
+-   **`full_audio_languages`**: List of languages with audio support for the game. [**LO MISMO QUE ARRIBA**]
+-   **`packages`**: Avaliable packages for the game. It contains the name and a description of the package and the names, descriptions and subprices of the subpackages. [**LO MISMO QUE ARRIBA**]
+-   **`Developers`**: List of developers associated with the game. [**LO MISMO QUE ARRIBA**]
+-   **`publishers`**: List of publishers associated with the game. [**LO MISMO QUE ARRIBA**]
+-   **`categories`**: List of categories that the game has. [**LO MISMO QUE ARRIBA**]
+-   **`genres`**: List of genres that the game belongs to. [**LO MISMO QUE ARRIBA**]
+-   **`screenshots`**: List of the game screenshots URLs. [**LO MISMO QUE ARRIBA**]
+-   **`movies`**: List of the game moovies (videos) URLs. [**LO MISMO QUE ARRIBA**]
+-   **`user_score`**: _Hay aprox 39 observaciones que NO son 0, no sé de dónde sale esto pero creo que se podría eliminar esta columna xd_
+-   **`score_rank`**: Score rank of the games based on user reviews. _Pasa lo mismo que en user_socre, de hecho sólo los que tienen user_score tienen score_rank_
+-   **`positive`**: Ammount of positive votes the game has. [num]
+-   **`negative`**: Ammount of negative votes the game has. [num]
+-   **`estimated_owners`**: Estimated owners of the game. [text]
+-   **`average_playtime_forever`**: Average playtime since March 2009 measured in minutes. [num]
+-   **`average_playtime_2weeks`**: Average playtime in the last two weeks measured in minutes. [num]
+-   **`median_playtime_forever`**: Median playtime since March 2009 measured in minutes. [num]
+-   **`median_playtime_2weeks`**: Median playtime in the last two weeks measured in minutes.[num]
+-   **`discount`**: Discount the game has (in percentage). [num]
+-   **`peak_ccu`**: Number of current users playing the day before the data was scrapped. [num]
+-   **`tags`**: List of tags the game has with its name and its key. [**NO SE QUE CATEGORIA DARLE**]
+-   **`pct_pos_total`**: Percentage of all reviews that are positive. [int]
+-   **`num_reviews_total`**: Nummber of the total reviews the game has. [int]
+-   **`pct_pos_recent`**: Percentage of the reviews made in the last 30 days that are positive. [int]
+-   **`num_reviews_recent`**: Number of the reviews made in the last 30 days. [int]
+
+
+```{r steam summary, echo = false}
+summary(steam)
+```
+
+
+```{r, echo = FALSE}
+## Checkeo de los score ranks y user_score para ver si estan relacionados
+filtered_data <- steam %>% 
+  filter(user_score > 0 & score_rank != 0)
+
+filtered_data
+str(filtered_data)
+```
+
+
+```{r removing columns, echo = FALSE}
+first_cleaned_steam <- steam
+
+first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -header_image, -notes, -screenshots)
+
+head(first_cleaned_steam)
+```
+
