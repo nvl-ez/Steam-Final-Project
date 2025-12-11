@@ -4,11 +4,12 @@ library(dplyr)
 library(purrr)
 library(stringr)
 library(tidyr)
+library(arules)
 ```
 
 
 ```{r}
-steam = read.csv("data/kaggle_march2025_full.csv")
+steam <- read.csv("data/kaggle_march2025_full.csv")
 ```
 
 # Create Dataset for this Section
@@ -62,67 +63,68 @@ steam_tags
 From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
 ```{r}
 genres <- c(
-  # Core action/adventure/RPG
-  "Action", "Adventure", "Action-Adventure",
-  "RPG", "Action RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Party-Based RPG",
-  
-  # Strategy & tactics
-  "Strategy", "Real Time Tactics", "Grand Strategy", "Turn-Based Strategy",
-  "RTS", "Action RTS", "Tower Defense", "Wargame",
-  
-  # Simulation & management
-  "Simulation", "Life Sim", "Farming Sim", "Medical Sim", "Outbreak Sim",
-  "City Builder", "Colony Sim", "Management", "Hobby Sim",
-  
-  # Sports & subgenres
-  "Sports", "Football", "Football (American)", "Football (Soccer)", "Soccer",
-  "Basketball", "Baseball", "Hockey", "Tennis", "Golf", "Mini Golf", "Rugby",
-  
-  # Racing & vehicles
-  "Racing", "Combat Racing", "Motocross", "Motorbike", "Automobile Sim",
-  "Skateboarding", "Skating", "Skiing", "Snowboarding", "BMX",
-  
+  # Action
+  "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
+  "Arcade", "Immersive Sim", "Metroidvania", "Musou", "Sandbox", "Survival",
+  "Survival Horror", "MOBA",
+
+  # Shooter
+  "Arena Shooter", "Battle Royale", "Boomer Shooter", "Bullet Hell", "Extraction Shooter",
+  "FPS", "Hero Shooter", "Looter Shooter", "On-Rails Shooter", "Third-Person Shooter",
+  "Top-Down Shooter", "Twin Stick Shooter", "Vehicular Combat", "Naval Combat",
+  "Combat Racing",
+
+  # Roguelike
+  "Rogue-like", "Rogue-lite", "Roguevania", "Traditional Roguelike",
+  "Roguelike Deckbuilder", "Mystery Dungeon",
+
+  # RPG
+  "RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Otome", 
+  "Dating Sim", "Visual Novel", "Interactive Fiction", "Text-Based", 
+  "MMORPG", "MMO",
+
+  # Strategy
+  "Strategy", "4X", "Grand Strategy", "RTS", "Real Time Tactics",
+  "Turn-Based Strategy", "Tactical", "Tabletop", "Wargame", "Political Sim",
+  "God Game", "Management", "Colony Sim", "City Builder", "Shop Keeper",
+  "Tower Defense", "Creature Collector",
+
+  # Simulation
+  "Simulation", "Automobile Sim", "Farming Sim", "Medical Sim",
+  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim",
+
+  # Sports
+  "Sports", "Baseball", "Basketball", "Bowling", "Boxing", "BMX", "Cricket",
+  "Football", "Football (American)", "Football (Soccer)", "Soccer",
+  "Golf", "Hockey", "Mini Golf", "Motocross", "Pool", "Racing", "Rugby",
+  "Skateboarding", "Skating", "Skiing", "Snowboarding", "Snooker", "Tennis",
+  "Volleyball", "Wrestling", "Driving",
+
   # Fighting
-  "Fighting", "2D Fighter", "3D Fighter", "Martial Arts", "Spectacle fighter",
-  
-  # Platformers
+  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like",
+
+  # Platformers & runners 
   "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
-  
-  # Structural subgenres
-  "Metroidvania", "Runner", "Rogue-like", "Rogue-lite", "Traditional Roguelike",
-  "Roguelike Deckbuilder", "Roguevania", "Action Roguelike",
-  "Souls-like",
-  
-  # Shooters
-  "Battle Royale", "Boomer Shooter", "Arena Shooter", "Hero Shooter",
-  "On-Rails Shooter", "Twin Stick Shooter",
-  "Third-Person Shooter", "Top-Down Shooter",
-  "Extraction Shooter", "Looter Shooter",
-  
-  # Narrative
-  "Visual Novel", "Dating Sim", "Otome",
-  "Hidden Object", "Point & Click",
-  
-  # Card/board 
-  "Rhythm", "Card Game", "Trading Card Game",
-  "Tabletop", "Board Game", "Mahjong", "Sokoban", "Solitaire", "Word Game",
-  
-  # Puzzle
-  "Puzzle", "Puzzle-Platformer", "Tile-Matching", "Match 3",
-  
-  # Idle / god
-  "Clicker", "Idler", "God Game",
-  
-  # Sandbox
-  "Sandbox", "Open World", "Open World Survival Craft",
-  
-  # Online competitive/co-op genres
-  "MMORPG", "MOBA",
-  
-  # Other experiential subgenres
-  "Walking Simulator",
-  "Immersive Sim",
-  "Job Simulator"
+  "Runner", "Open World Survival Craft",
+
+  # Puzzle, logic, board & card games
+  "Puzzle", "Puzzle-Platformer", "Logic", "Mahjong",
+  "Match 3", "Tile-Matching", "Sokoban", "Solitaire", "Trivia",
+  "Board Game", "Card Game", "Trading Card Game", "Hidden Object",
+  "Escape Room", "Chess", "Word Game", "Point & Click",
+
+  #  Casual / idle
+  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball",
+
+  # Horror
+  "Horror", "Psychological Horror",
+
+  # Music & rhythm
+  "Music", "Rhythm", "Typing",
+
+  # Walking
+  "Walking Simulator", "FMV"
+
 )
 
 mechanics <- c(
@@ -133,19 +135,19 @@ mechanics <- c(
   # Customization
   "Gun Customization", "Character Customization",
   
-  # Movement & combat style
+  # Movement
   "Stealth", "Parkour", "Swordplay", "Archery", "Sniper",
   
-  # Physics & destruction
+  # Physics
   "Physics", "Destruction",
   
-  # Failure / run structure
+  # Failure
   "Permadeath", "Perma Death",
   
-  # Procedural content
+  # Procedural
   "Procedural Generation", "Music-Based Procedural Generation",
   
-  # Tempo / timing
+  # Timing
   "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
   "Real-Time", "Real-Time with Pause",
   "Time Manipulation", "Time Management", "Time Attack",
@@ -153,7 +155,7 @@ mechanics <- c(
   # Spatial rules
   "Grid-Based Movement", "Hex Grid",
   
-  # Input/response
+  # QTE
   "Quick-Time Events",
   
   # Narrative logic
@@ -163,7 +165,7 @@ mechanics <- c(
   "Exploration", "Dungeon Crawler", "Collectathon",
   "Boss Rush", "Side Scroller", "Loot", 
   
-  # Social logic
+  # Social deduction
   "Social Deduction",
   
   # Card/Deck mechanics
@@ -179,7 +181,7 @@ mechanics <- c(
   # Modding / creation
   "Level Editor", "Moddable", "Mod",
   
-  # Onboarding
+  # Tutorial
   "Tutorial"
 )
 
@@ -223,8 +225,89 @@ indie_games <- steam %>%
   )
 ```
 
-From the indie_games dataset, only the valuable variables for our study will be kept
+Prepare data for determining successful games TODO
 ```{r}
-indie_games <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, categories, genres, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, tags, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
+indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
 ```
 
+
+
+
+
+Helper function for generating the one-hot encoded variables for the genres, characteristics and mechanics:
+```{r}
+make_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
+  
+  # Modified version of get_unique_list_values
+  parse_list_row <- function(x) {
+    if (x == "[]") return(character(0))
+    
+    x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
+    x <- gsub("['\"]", "", x)     # quitar ' y "
+    
+    elements <- strsplit(x, ",")[[1]]
+    vals <- trimws(elements)
+    vals <- vals[vals != ""]
+    vals
+  }
+  
+  # Modified version of get_unique_dict_keys
+  parse_dict_row <- function(x) {
+    if (x == "[]" || x == "") return(character(0))
+    
+    m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
+    keys <- regmatches(x, m)[[1]]
+    if (length(keys) == 0) return(character(0))
+    
+    keys <- gsub("^'|'$", "", keys)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+  
+  # Precompute  tokens per game (categories + genres + tags)
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    cats <- parse_list_row(data[[categories_col]][i])
+    gens <- parse_list_row(data[[genres_col]][i])
+    tgs  <- parse_dict_row(data[[tags_col]][i])
+    
+    unique(c(cats, gens, tgs))
+  })
+  
+  # For each  value, create a one-hot column
+  for (val in values) {
+    data[[val]] <- vapply(
+      tokens_list,
+      function(tokens) val %in% tokens,
+      logical(1)
+    )
+  }
+  
+  data
+}
+```
+
+From the indie_games dataset, only the valuable variables for our study will be kept
+```{r}
+# Reduce
+indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
+
+indie_games_attributes <- indie_games %>% select(tags, categories, genres)
+
+indie_games_genre <- indie_games_attributes %>% 
+  make_one_hot(genres) %>% 
+  select(-tags, -categories, -genres) %>% 
+  as("transactions")
+
+indie_games_mechanics <- 
+  indie_games_attributes %>% 
+  make_one_hot(mechanics) %>% 
+  select(-tags, -categories, -genres) %>% 
+  as("transactions")
+
+indie_games_characteristics <- 
+  indie_games_attributes %>% 
+  make_one_hot(characteristics) %>% 
+  select(-tags, -categories, -genres) %>% 
+  as("transactions")
+
+```
