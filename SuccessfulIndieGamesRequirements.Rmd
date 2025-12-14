@@ -5,6 +5,7 @@ library(purrr)
 library(stringr)
 library(tidyr)
 library(arules)
+library(rlang)
 ```
 
 
@@ -227,7 +228,54 @@ indie_games <- steam %>%
 
 Prepare data for determining successful games TODO
 ```{r}
-indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
+indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
+
+colnames(indie_games_data)
+
+#transform suported languages into count
+add_column_count <- function(df, column, new_col) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{new_col}" := case_when(
+        !!column_quo == "[]" ~ 0L,
+        TRUE ~ str_count(!!column_quo, "'") %/% 2L
+      )
+    )
+}
+
+add_range_minmax <- function(df, column, min_column, max_column) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
+      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
+    )
+}
+
+
+indie_games_cluster <- indie_games_data %>% 
+  add_column_count(supported_languages, "languages_count") %>% # Count languages
+  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
+  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
+  select(-appid, -name, -supported_languages, -estimated_owners) %>% 
+  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
+  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
+  mutate(linux = as.integer(linux == "True")) # parse logical to int
+
+
+  indie_games_cluster <- indie_games_cluster %>% mutate( # Avoid scaling binary columns
+    across(
+      where(is.numeric) & !all_of(c("windows", "mac", "linux")),
+      ~ as.numeric(scale(.))
+    )
+  )
+  
+  km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
+  indie_games_data$successful<- km2$cluster
+
 ```
 
 
@@ -289,8 +337,6 @@ make_one_hot <- function(data, values, categories_col = "categories", genres_col
 From the indie_games dataset, only the valuable variables for our study will be kept
 ```{r}
 # Reduce
-indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, user_score, score_rank, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
-
 indie_games_attributes <- indie_games %>% select(tags, categories, genres)
 
 indie_games_genre <- indie_games_attributes %>% 
