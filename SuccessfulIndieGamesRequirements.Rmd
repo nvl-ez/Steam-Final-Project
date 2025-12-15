@@ -6,6 +6,7 @@ library(stringr)
 library(tidyr)
 library(arules)
 library(rlang)
+library(ggplot2)
 ```
 
 
@@ -226,11 +227,11 @@ indie_games <- steam %>%
   )
 ```
 
-Prepare data for determining successful games TODO
+Prepare data for determining successful games
 ```{r}
-indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, average_playtime_2weeks, median_playtime_forever, median_playtime_2weeks, peak_ccu, pct_pos_total, num_reviews_total, pct_pos_recent, num_reviews_recent)
+indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
 
-colnames(indie_games_data)
+
 
 #transform suported languages into count
 add_column_count <- function(df, column, new_col) {
@@ -255,15 +256,18 @@ add_range_minmax <- function(df, column, min_column, max_column) {
     )
 }
 
+#Limpiar esta linea con los cambios de arturo TODO
+indie_games_data <- indie_games_data %>% 
+  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
+  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
+  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
+  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
+  mutate(linux = as.integer(linux == "True")) %>% # parse logical to int
+  select(-estimated_owners)
 
 indie_games_cluster <- indie_games_data %>% 
   add_column_count(supported_languages, "languages_count") %>% # Count languages
-  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
-  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
-  select(-appid, -name, -supported_languages, -estimated_owners) %>% 
-  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
-  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
-  mutate(linux = as.integer(linux == "True")) # parse logical to int
+  select(-appid, -name, -supported_languages)
 
 
   indie_games_cluster <- indie_games_cluster %>% mutate( # Avoid scaling binary columns
@@ -274,10 +278,70 @@ indie_games_cluster <- indie_games_data %>%
   )
   
   km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
-  indie_games_data$successful<- km2$cluster
+  indie_games_data$success_cluster<- km2$cluster
+  colnames(indie_games_data)
+```
+Obtain most discriminative variable clusters:
+```{r}
+vars <- c(
+  "price", "dlc_count", "windows", "mac", "linux",
+  "achievements", "recommendations",
+  "positive", "negative",
+  "average_playtime_forever", "median_playtime_forever",
+  "peak_ccu",
+  "pct_pos_total", "num_reviews_total",
+  "estimated_owners_min", "estimated_owners_max",
+  "estimated_revenue"
+)
+
+# Compute ANOVA F-statistic for each variable vs success_cluster
+f_stats <- map_dbl(vars, function(v) {
+  form <- as.formula(paste(v, "~ success_cluster"))
+  aov_res <- aov(form, data = indie_games_data)
+  summary(aov_res)[[1]][["F value"]][1]
+})
+
+# Most discriminative variable (highest F)
+most_discriminative_var <- vars[which.max(f_stats)]
 
 ```
+Plot the clusters using the most discriminative variable:
+```{r}
+recommendations_by_cluster <- indie_games_data %>%
+  group_by(success_cluster) %>%
+  summarise(
+    mean_val = mean(as.numeric(.data[[most_discriminative_var]])),
+    median_val = median(as.numeric(.data[[most_discriminative_var]])),
+    n_games = n(),
+    .groups = "drop"
+  )
 
+ggplot(recommendations_by_cluster,
+       aes(x = factor(success_cluster), y = mean_val)) +
+  geom_col() +
+  geom_text(aes(label = n_games), vjust = -0.4) +
+  scale_y_continuous(
+    breaks = scales::pretty_breaks(),
+    expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    x = "Cluster",
+    y = paste("Average", most_discriminative_var),
+    title = paste("Average", most_discriminative_var, "by cluster")
+  )
+```
+Tag each game depending on if it pertains to a successful cluster or not:
+```{r}
+# Find the 2 clusters with the highest mean of the most discriminative variable
+top2_clusters <- recommendations_by_cluster %>%
+  arrange(desc(mean_val)) %>%
+  slice_head(n = 2) %>%
+  pull(success_cluster)
+
+# Add successful column (1 if in top 2 clusters, else 0)
+indie_games_data <- indie_games_data %>%
+  mutate(successful = as.integer(success_cluster %in% top2_clusters)) %>%
+  select(-success_cluster)
+```
 
 
 
