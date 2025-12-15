@@ -124,7 +124,35 @@ steam_unique_price <- second_cleaned_steam %>%
 
 third_cleaned_steam <- steam_unique_price %>%
   filter(!is.na(name), name != "", name != " ")
+
+str(third_cleaned_steam)
 ```
+
+
+Removing estimated_owners column to create estimated_owners_min and estimated_owners_max
+```{r handling estimated_owners, echo = FALSE}
+
+add_range_minmax <- function(df, column, min_column, max_column) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
+      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
+    )
+}
+
+fourth_cleaned_steam <- third_cleaned_steam %>%
+  add_range_minmax(
+    estimated_owners,
+    "estimated_owners_min",
+    "estimated_owners_max"
+  )
+
+fourth_cleaned_steam <- fourth_cleaned_steam %>% select(-estimated_owners) 
+
+```
+
 
 
 ```{r pruebas mias, echo = FALSE}
