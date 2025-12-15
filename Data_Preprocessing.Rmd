@@ -48,7 +48,7 @@ The dataset we will be working with contains a total number of 94948 observation
 -   **`detailed_description`**: Contains the detailed description of the game. [text]
 -   **`about_the_game`**: Cointains information about the game. [text]
 -   **`short_description`**: Provides a short descrpition of the game. [text]
--   **`reviews``**: _NO ESTOY ENCONTRANDO INFO_
+-   **`reviews``**: Reviews given by professionals and its grades. [text]
 -   **`header_image`**: Contains the URL to the header image of the game. [text]
 -   **`website`**: Contains the URL to the official website of the game. [text]
 -   **`suppport_url`**: URL to the support page of the game. [text]
@@ -100,14 +100,49 @@ filtered_data <- steam %>%
 
 filtered_data
 str(filtered_data)
+
+a <- steam %>% 
+  filter(price >= 100)
+
+a
+
+
+filtered_data <- first_cleaned_steam %>% 
+  filter(metacritic_score == 0)
+
+(filtered_data)
 ```
 
 
 ```{r removing columns, echo = FALSE}
 first_cleaned_steam <- steam
 
-first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -header_image, -notes, -screenshots)
+first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -screenshots, -movies, -user_score, -score_rank, -notes)
 
-head(first_cleaned_steam)
+str(first_cleaned_steam)
+```
+
+LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha fallado durante su ejecución. Si vamos a trabajar con las reseñas podríamos decir en la presentación que vamos a probar de volver a intentar scrappear la información 
+
+Eliminar los juegos que tienen "Playtest" en su nombre
+
+```{r removing playtest games, echo = FALSE}
+second_cleaned_steam <- first_cleaned_steam %>%
+  filter(!grepl("Playtest", name, ignore.case = TRUE))
+
+summary(second_cleaned_steam)
+```
+
+
+Quitando juegos duplicados y juegos sin nombre
+```{r}
+#En caso de empate de precios se queda con el primero
+steam_unique_price <- second_cleaned_steam %>%
+  group_by(name) %>%
+  slice_max(price, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+third_cleaned_steam <- steam_unique_price %>%
+  filter(!is.na(name), name != "", name != " ")
 ```
 
