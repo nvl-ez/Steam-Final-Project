@@ -93,31 +93,10 @@ summary(steam)
 ```
 
 
-```{r, echo = FALSE}
-## Checkeo de los score ranks y user_score para ver si estan relacionados
-filtered_data <- steam %>% 
-  filter(user_score > 0 & score_rank != 0)
-
-filtered_data
-str(filtered_data)
-
-a <- steam %>% 
-  filter(price >= 100)
-
-a
-
-
-filtered_data <- first_cleaned_steam %>% 
-  filter(metacritic_score == 0)
-
-(filtered_data)
-```
-
-
 ```{r removing columns, echo = FALSE}
 first_cleaned_steam <- steam
 
-first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -screenshots, -movies, -user_score, -score_rank, -notes)
+first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -notes, -screenshots, -movies, -user_score, -score_rank, -discount)
 
 str(first_cleaned_steam)
 ```
@@ -136,13 +115,34 @@ summary(second_cleaned_steam)
 
 Quitando juegos duplicados y juegos sin nombre
 ```{r}
-#En caso de empate de precios se queda con el primero
+# From the repeated games we keep with those that have the higher price and the higher amount of total reviews 
 steam_unique_price <- second_cleaned_steam %>%
+  arrange(name, desc(price), desc(num_reviews_total)) %>%
   group_by(name) %>%
-  slice_max(price, n = 1, with_ties = FALSE) %>%
+  slice(1) %>%
   ungroup()
 
 third_cleaned_steam <- steam_unique_price %>%
   filter(!is.na(name), name != "", name != " ")
 ```
 
+
+```{r pruebas mias, echo = FALSE}
+## Checkeo de los score ranks y user_score para ver si estan relacionados
+filtered_data <- steam %>% 
+  filter(user_score > 0 & score_rank != 0)
+
+filtered_data
+str(filtered_data)
+
+a <- steam %>% 
+  filter(price >= 100)
+
+a
+
+
+filtered_data <- first_cleaned_steam %>% 
+  filter(metacritic_score == 0)
+
+(filtered_data)
+```
