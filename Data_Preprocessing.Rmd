@@ -41,7 +41,7 @@ The dataset we will be working with contains a total number of 94948 observation
 
 -   **`appid`**: Unique idetnifier of the game on Steam. [num]
 -   **`name`**: Name of the game. [text]
--   **`released_date``**: Represents the date where the game was released. [text]
+-   **`released_date``**: Represents the date where the game was released. [time]
 -   **`required_age``**: Corresponds to the minimum age required to play the game. [num]
 -   **`price`**: How much the game costs. If its 0 it means that the game is Free to Play. [num]
 -   **`dlc_count`**: Ammount of DLCs (Downloadable Contents) the game has. [num]
@@ -82,10 +82,10 @@ The dataset we will be working with contains a total number of 94948 observation
 -   **`discount`**: Discount the game has (in percentage). [num]
 -   **`peak_ccu`**: Number of current users playing the day before the data was scrapped. [num]
 -   **`tags`**: List of tags the game has with its name and its key. [**NO SE QUE CATEGORIA DARLE**]
--   **`pct_pos_total`**: Percentage of all reviews that are positive. [int]
--   **`num_reviews_total`**: Nummber of the total reviews the game has. [int]
--   **`pct_pos_recent`**: Percentage of the reviews made in the last 30 days that are positive. [int]
--   **`num_reviews_recent`**: Number of the reviews made in the last 30 days. [int]
+-   **`pct_pos_total`**: Percentage of all reviews that are positive. [num]
+-   **`num_reviews_total`**: Nummber of the total reviews the game has. [num]
+-   **`pct_pos_recent`**: Percentage of the reviews made in the last 30 days that are positive. [num]
+-   **`num_reviews_recent`**: Number of the reviews made in the last 30 days. [num]
 
 
 ```{r steam summary, echo = false}
@@ -96,7 +96,7 @@ summary(steam)
 ```{r removing columns, echo = FALSE}
 first_cleaned_steam <- steam
 
-first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -notes, -screenshots, -movies, -user_score, -score_rank, -discount)
+first_cleaned_steam <- first_cleaned_steam %>% select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -notes, -full_audio_languages, -screenshots, -movies, -user_score, -score_rank, -discount, -pct_pos_recent, -num_reviews_recent)
 
 str(first_cleaned_steam)
 ```
