@@ -64,152 +64,154 @@ steam_tags
 ```
 From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
 ```{r}
-genres <- c(
+#Genres
+action_genre <- c(
   # Action
   "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
   "Arcade", "Immersive Sim", "Metroidvania", "Musou", "Sandbox", "Survival",
-  "Survival Horror", "MOBA",
-
+  "Survival Horror", "MOBA")
+shooter_genre<- c(
   # Shooter
   "Arena Shooter", "Battle Royale", "Boomer Shooter", "Bullet Hell", "Extraction Shooter",
   "FPS", "Hero Shooter", "Looter Shooter", "On-Rails Shooter", "Third-Person Shooter",
   "Top-Down Shooter", "Twin Stick Shooter", "Vehicular Combat", "Naval Combat",
-  "Combat Racing",
-
+  "Combat Racing")
+roguelike_genre <- c(
   # Roguelike
   "Rogue-like", "Rogue-lite", "Roguevania", "Traditional Roguelike",
-  "Roguelike Deckbuilder", "Mystery Dungeon",
-
+  "Roguelike Deckbuilder", "Mystery Dungeon")
+RPG_genre <- c(
   # RPG
   "RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Otome", 
   "Dating Sim", "Visual Novel", "Interactive Fiction", "Text-Based", 
-  "MMORPG", "MMO",
-
+  "MMORPG", "MMO")
+strategy_genre <- c(
   # Strategy
   "Strategy", "4X", "Grand Strategy", "RTS", "Real Time Tactics",
   "Turn-Based Strategy", "Tactical", "Tabletop", "Wargame", "Political Sim",
   "God Game", "Management", "Colony Sim", "City Builder", "Shop Keeper",
-  "Tower Defense", "Creature Collector",
-
+  "Tower Defense", "Creature Collector")
+simulation_genre <- c(
   # Simulation
   "Simulation", "Automobile Sim", "Farming Sim", "Medical Sim",
-  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim",
-
+  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim")
+sport_genre <- c(
   # Sports
   "Sports", "Baseball", "Basketball", "Bowling", "Boxing", "BMX", "Cricket",
   "Football", "Football (American)", "Football (Soccer)", "Soccer",
   "Golf", "Hockey", "Mini Golf", "Motocross", "Pool", "Racing", "Rugby",
   "Skateboarding", "Skating", "Skiing", "Snowboarding", "Snooker", "Tennis",
-  "Volleyball", "Wrestling", "Driving",
-
+  "Volleyball", "Wrestling", "Driving")
+fighting_genre <- c(
   # Fighting
-  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like",
-
+  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like")
+platformer_genre <- c(
   # Platformers & runners 
   "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
-  "Runner", "Open World Survival Craft",
-
+  "Runner", "Open World Survival Craft")
+tabletop_genre <- c(
   # Puzzle, logic, board & card games
   "Puzzle", "Puzzle-Platformer", "Logic", "Mahjong",
   "Match 3", "Tile-Matching", "Sokoban", "Solitaire", "Trivia",
   "Board Game", "Card Game", "Trading Card Game", "Hidden Object",
-  "Escape Room", "Chess", "Word Game", "Point & Click",
-
+  "Escape Room", "Chess", "Word Game", "Point & Click")
+casual_genre <- c(
   #  Casual / idle
-  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball",
-
+  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball")
+horror_genre <- c(
   # Horror
-  "Horror", "Psychological Horror",
-
+  "Horror", "Psychological Horror")
+music_genre <- c(
   # Music & rhythm
-  "Music", "Rhythm", "Typing",
-
+  "Music", "Rhythm", "Typing")
+wlking_sim_genre <- c(
   # Walking
-  "Walking Simulator", "FMV"
+  "Walking Simulator", "FMV")
 
-)
-
-mechanics <- c(
+#Mechanics
+resource_management_mechanic <- c(
   # Economy, building, resources
   "Base-Building", "Building", "Resource Management", "Inventory Management",
-  "Crafting", "Automation", "Mining", "Farming",
-  
+  "Crafting", "Automation", "Mining", "Farming")
+
+customization_mechanic <- c(
   # Customization
-  "Gun Customization", "Character Customization",
-  
+  "Gun Customization", "Character Customization")
+movement_mechanic <- c(
   # Movement
-  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper",
-  
+  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper")
+physics_mechanic <- c(
   # Physics
-  "Physics", "Destruction",
-  
+  "Physics", "Destruction")
+failure_mechanic <- c(
   # Failure
-  "Permadeath", "Perma Death",
-  
+  "Permadeath", "Perma Death")
+procedural_mechanic <- c(
   # Procedural
-  "Procedural Generation", "Music-Based Procedural Generation",
-  
+  "Procedural Generation", "Music-Based Procedural Generation")
+timing_mechanic <- c(
   # Timing
   "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
   "Real-Time", "Real-Time with Pause",
-  "Time Manipulation", "Time Management", "Time Attack",
-  
+  "Time Manipulation", "Time Management", "Time Attack")
+spatial_rules_mechanic <- c(
   # Spatial rules
-  "Grid-Based Movement", "Hex Grid",
-  
+  "Grid-Based Movement", "Hex Grid")
+quicktime_events_mechanic <- c(
   # QTE
-  "Quick-Time Events",
-  
+  "Quick-Time Events")
+narrative_mechanic <- c(
   # Narrative logic
-  "Choices Matter", "Multiple Endings", "Nonlinear",
-  
+  "Choices Matter", "Multiple Endings", "Nonlinear")
+exploration_mechanic <- c(
   # Exploration & structure
   "Exploration", "Dungeon Crawler", "Collectathon",
-  "Boss Rush", "Side Scroller", "Loot", 
-  
+  "Boss Rush", "Side Scroller", "Loot")
+social_mechanic <- c(
   # Social deduction
-  "Social Deduction",
-  
+  "Social Deduction")
+card_mechanic <- c(
   # Card/Deck mechanics
-  "Deckbuilding", "Card Battler",
-  
+  "Deckbuilding", "Card Battler")
+programming_mechanic <- c(
   # Programming
-  "Programming", "Coding",
-  
+  "Programming", "Coding")
+economy_mechanic <- c(
   # Economy
   "Trading", "Economy", "Capitalism",
-  "Diplomacy",
-  
+  "Diplomacy")
+modding_mechanic <- c(
   # Modding / creation
-  "Level Editor", "Moddable", "Mod",
-  
+  "Level Editor", "Moddable", "Mod")
+tutorial_mechanic <- c(
   # Tutorial
-  "Tutorial"
-)
+  "Tutorial")
 
-characteristics <- c(
+# Characteristics
+camera_characteristic <- c(
   # Dimensionality & camera
   "2D", "2.5D", "3D",
   "Isometric", "Top-Down",
   "6DOF",
-  "First-Person", "Third Person",
-  
+  "First-Person", "Third Person")
+
+vr_characteristic <- c(
   # VR
-  "VR", "VR Only", "Asymmetric VR",
-  
+  "VR", "VR Only", "Asymmetric VR")
+
+players_characteristic <- c(
   # Player count / mode
   "Singleplayer",
   "Multiplayer", "Massively Multiplayer",
   "Co-op", "Local Co-Op", "Online Co-Op", "Co-op Campaign",
-  "4 Player Local", "Split Screen",
-  
+  "4 Player Local", "Split Screen")
+team_characteristic <- c(
   # Team/role structure
   "PvP", "PvE", "Team-Based",
-  "Asynchronous Multiplayer",
-  
+  "Asynchronous Multiplayer")
+esports_characteristic <- c(
   # Competitive/e-sports
-  "e-sports"
-)
+  "e-sports")
 ```
 
 
@@ -322,7 +324,7 @@ ggplot(recommendations_by_cluster,
   geom_text(aes(label = n_games), vjust = -0.4) +
   scale_y_continuous(
     breaks = scales::pretty_breaks(),
-    expand = expansion(mult = c(0, 0.12))) +
+    expand = expansion(mult = c(0, 0.16))) +
   labs(
     x = "Cluster",
     y = paste("Average", most_discriminative_var),
