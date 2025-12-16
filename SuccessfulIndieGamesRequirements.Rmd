@@ -350,7 +350,7 @@ indie_games_data <- indie_games_data %>%
 
 Helper function for generating the one-hot encoded variables for the genres, characteristics and mechanics:
 ```{r}
-make_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
+  make_value_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
   
   # Modified version of get_unique_list_values
   parse_list_row <- function(x) {
@@ -397,7 +397,54 @@ make_one_hot <- function(data, values, categories_col = "categories", genres_col
   }
   
   data
+  }
+
+make_group_flag <- function(data, values, group_name,
+                            categories_col = "categories",
+                            genres_col = "genres",
+                            tags_col = "tags") {
+
+  # Parse list-like string: "['Action', 'Indie']"
+  parse_list_row <- function(x) {
+    if ( x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    elements <- strsplit(x, ",", fixed = TRUE)[[1]]
+    vals <- trimws(elements)
+    vals[vals != ""]
+  }
+
+  # Parse dict-like string: "{'FPS': 956, 'War': 931}"
+  parse_dict_row <- function(x) {
+    if (is.na(x) || x == "[]" || x == "") return(character(0))
+    m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
+    keys <- regmatches(x, m)[[1]]
+    if (length(keys) == 0) return(character(0))
+    keys <- gsub("^'|'$", "", keys)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+
+  values_set <- unique(values)
+
+  # Precompute tokens per game once
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    cats <- parse_list_row(data[[categories_col]][i])
+    gens <- parse_list_row(data[[genres_col]][i])
+    tgs  <- parse_dict_row(data[[tags_col]][i])
+    unique(c(cats, gens, tgs))
+  })
+
+  flag <- vapply(
+    tokens_list,
+    function(tokens) any(tokens %in% values_set),
+    logical(1)
+  )
+
+  data[[group_name]] <-  as.integer(flag)
+  data
 }
+
 ```
 
 From the indie_games dataset, only the valuable variables for our study will be kept
@@ -406,20 +453,6 @@ From the indie_games dataset, only the valuable variables for our study will be 
 indie_games_attributes <- indie_games %>% select(tags, categories, genres)
 
 indie_games_genre <- indie_games_attributes %>% 
-  make_one_hot(genres) %>% 
-  select(-tags, -categories, -genres) %>% 
-  as("transactions")
-
-indie_games_mechanics <- 
-  indie_games_attributes %>% 
-  make_one_hot(mechanics) %>% 
-  select(-tags, -categories, -genres) %>% 
-  as("transactions")
-
-indie_games_characteristics <- 
-  indie_games_attributes %>% 
-  make_one_hot(characteristics) %>% 
-  select(-tags, -categories, -genres) %>% 
-  as("transactions")
+  make_group_flag(genres, action_genre, "action_genre")
 
 ```
