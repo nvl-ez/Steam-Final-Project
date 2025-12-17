@@ -454,45 +454,52 @@ make_group_flag <- function(data, values, group_name,
                             tags_col = "tags") {
 
   parse_list_row <- function(x) {
-    if (x == "[]") return(character(0))
+    x <- as.character(x)
+    if (is.na(x) || x == "[]") return(character(0))
     x <- gsub("^\\[|\\]$", "", x)
     x <- gsub("['\"]", "", x)
-    elements <- strsplit(x, ",", fixed = TRUE)[[1]]
-    vals <- trimws(elements)
+    vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
     vals[vals != ""]
   }
 
   parse_dict_row <- function(x) {
-    if (is.na(x) || x == "[]" || x == "") return(character(0))
-    m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
-    keys <- regmatches(x, m)[[1]]
-    if (length(keys) == 0) return(character(0))
-    keys <- gsub("^'|'$", "", keys)
+    x <- as.character(x)
+    if (is.na(x) || x == "[]" || x == "" || x == "{}") return(character(0))
+
+    m <- gregexpr("(['\"])([^'\"]+)\\1\\s*:", x, perl = TRUE)
+    pieces <- regmatches(x, m)[[1]]
+    if (length(pieces) == 0) return(character(0))
+
+    keys <- sub("^(['\"])([^'\"]+)\\1\\s*:$", "\\2", pieces, perl = TRUE)
     keys <- trimws(keys)
     keys[keys != ""]
   }
 
-  values_set <- unique(values)
+  values_set <- trimws(unique(values))
 
   tokens_list <- lapply(seq_len(nrow(data)), function(i) {
     cats <- parse_list_row(data[[categories_col]][i])
     gens <- parse_list_row(data[[genres_col]][i])
     tgs  <- parse_dict_row(data[[tags_col]][i])
-    unique(c(cats, gens, tgs))
+    tokens <- unique(c(cats, gens, tgs))
+    tokens
   })
 
   flag <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
-  data[[group_name]] <- as.integer(flag)
+
+  data[[group_name]] <- flag
 
   data
 }
 
+
 ```
 
-From the indie_games dataset, only the valuable variables for our study will be kept
+From the indie_games dataset, the games and their genres, characteristics and mechanics are turned into transactions
 ```{r}
-indie_games_attributes <- indie_games_data %>% select(tags, categories, genres)
+indie_games_attributes <- indie_games %>% select(tags, categories, genres)
 
+# Generate or load Genres dataset
 out_file <- file.path("data", "indie_games_genre.rds")
 
 if (file.exists(out_file)) {
@@ -508,8 +515,33 @@ if (file.exists(out_file)) {
       group_name = nm
     )
   }
+  indie_games_genre <- indie_games_genre %>% select(-tags, -categories, -genres)
 
   saveRDS(indie_games_genre, out_file)
 }
 
+# Generate or load Mechanics dataset
+out_file <- file.path("data", "indie_games_mechanic.rds")
+
+if (file.exists(out_file)) {
+  indie_games_mechanic <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_mechanic <- indie_games_attributes
+  for (nm in names(mechanics)) {
+    indie_games_mechanic <- make_group_flag(
+      data = indie_games_mechanic,
+      values = mechanics[[nm]],
+      group_name = nm
+    )
+  }
+  indie_games_mechanic <- indie_games_mechanic %>% select(-tags, -categories, -genres)
+  
+  saveRDS(indie_games_mechanic, out_file)
+}
+
+
+trans_indie_games_genre <- as(indie_games_genre, "transactions")
+trans_indie_games_mechanic<- as(indie_games_mechanic, "transactions")
 ```
