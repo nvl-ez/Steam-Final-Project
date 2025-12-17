@@ -128,6 +128,24 @@ wlking_sim_genre <- c(
   # Walking
   "Walking Simulator", "FMV")
 
+genres <- list(
+  action = action_genre,
+  shooter = shooter_genre,
+  roguelike = roguelike_genre,
+  RPG = RPG_genre,
+  strategy = strategy_genre,
+  simulation = simulation_genre,
+  sport = sport_genre,
+  fighting = fighting_genre,
+  platformer = platformer_genre,
+  tabletop = tabletop_genre,
+  casual = casual_genre,
+  horror = horror_genre,
+  music = music_genre,
+  wlking_sim = wlking_sim_genre
+)
+
+
 #Mechanics
 resource_management_mechanic <- c(
   # Economy, building, resources
@@ -149,8 +167,8 @@ failure_mechanic <- c(
 procedural_mechanic <- c(
   # Procedural
   "Procedural Generation", "Music-Based Procedural Generation")
-timing_mechanic <- c(
-  # Timing
+turn_mechanic <- c(
+  # Turns
   "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
   "Real-Time", "Real-Time with Pause",
   "Time Manipulation", "Time Management", "Time Attack")
@@ -187,6 +205,26 @@ tutorial_mechanic <- c(
   # Tutorial
   "Tutorial")
 
+mechanics <- list(
+  resource_management = resource_management_mechanic, 
+  customization = customization_mechanic, 
+  movement = movement_mechanic, 
+  physics = physics_mechanic, 
+  failure = failure_mechanic, 
+  procedural = procedural_mechanic, 
+  turn = turn_mechanic,
+  spatial_rules = spatial_rules_mechanic,
+  quicktime_events = quicktime_events_mechanic,
+  narrative = narrative_mechanic,
+  exploration = exploration_mechanic,
+  social = social_mechanic,
+  card = card_mechanic,
+  programming = programming_mechanic,
+  economy = economy_mechanic,
+  modding = modding_mechanic,
+  tutorial = tutorial_mechanic
+)
+
 # Characteristics
 camera_characteristic <- c(
   # Dimensionality & camera
@@ -212,6 +250,14 @@ team_characteristic <- c(
 esports_characteristic <- c(
   # Competitive/e-sports
   "e-sports")
+
+characteristics <- list(
+  camera = camera_characteristic,
+  vr = vr_characteristic,
+  players = players_characteristic,
+  team = team_characteristic,
+  esports = esports_characteristic
+)
 ```
 
 
@@ -266,7 +312,10 @@ indie_games_data <- indie_games_data %>%
   mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
   mutate(linux = as.integer(linux == "True")) %>% # parse logical to int
   select(-estimated_owners)
+```
 
+Cluster the data:
+```{r}
 indie_games_cluster <- indie_games_data %>% 
   add_column_count(supported_languages, "languages_count") %>% # Count languages
   select(-appid, -name, -supported_languages)
@@ -348,7 +397,7 @@ indie_games_data <- indie_games_data %>%
 
 
 
-Helper function for generating the one-hot encoded variables for the genres, characteristics and mechanics:
+Helper functions for generating the one-hot encoded variables for the genres, characteristics and mechanics:
 ```{r}
   make_value_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
   
@@ -404,9 +453,8 @@ make_group_flag <- function(data, values, group_name,
                             genres_col = "genres",
                             tags_col = "tags") {
 
-  # Parse list-like string: "['Action', 'Indie']"
   parse_list_row <- function(x) {
-    if ( x == "[]") return(character(0))
+    if (x == "[]") return(character(0))
     x <- gsub("^\\[|\\]$", "", x)
     x <- gsub("['\"]", "", x)
     elements <- strsplit(x, ",", fixed = TRUE)[[1]]
@@ -414,7 +462,6 @@ make_group_flag <- function(data, values, group_name,
     vals[vals != ""]
   }
 
-  # Parse dict-like string: "{'FPS': 956, 'War': 931}"
   parse_dict_row <- function(x) {
     if (is.na(x) || x == "[]" || x == "") return(character(0))
     m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
@@ -427,7 +474,6 @@ make_group_flag <- function(data, values, group_name,
 
   values_set <- unique(values)
 
-  # Precompute tokens per game once
   tokens_list <- lapply(seq_len(nrow(data)), function(i) {
     cats <- parse_list_row(data[[categories_col]][i])
     gens <- parse_list_row(data[[genres_col]][i])
@@ -435,13 +481,9 @@ make_group_flag <- function(data, values, group_name,
     unique(c(cats, gens, tgs))
   })
 
-  flag <- vapply(
-    tokens_list,
-    function(tokens) any(tokens %in% values_set),
-    logical(1)
-  )
+  flag <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
+  data[[group_name]] <- as.integer(flag)
 
-  data[[group_name]] <-  as.integer(flag)
   data
 }
 
@@ -449,10 +491,25 @@ make_group_flag <- function(data, values, group_name,
 
 From the indie_games dataset, only the valuable variables for our study will be kept
 ```{r}
-# Reduce
-indie_games_attributes <- indie_games %>% select(tags, categories, genres)
+indie_games_attributes <- indie_games_data %>% select(tags, categories, genres)
 
-indie_games_genre <- indie_games_attributes %>% 
-  make_group_flag(genres, action_genre, "action_genre")
+out_file <- file.path("data", "indie_games_genre.rds")
+
+if (file.exists(out_file)) {
+  indie_games_genre <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_genre <- indie_games_attributes
+  for (nm in names(genres)) {
+    indie_games_genre <- make_group_flag(
+      data = indie_games_genre,
+      values = genres[[nm]],
+      group_name = nm
+    )
+  }
+
+  saveRDS(indie_games_genre, out_file)
+}
 
 ```
