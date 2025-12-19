@@ -7,6 +7,7 @@ library(tidyr)
 library(arules)
 library(rlang)
 library(ggplot2)
+library(arulesViz)
 ```
 
 
@@ -124,7 +125,7 @@ horror_genre <- c(
 music_genre <- c(
   # Music & rhythm
   "Music", "Rhythm", "Typing")
-wlking_sim_genre <- c(
+walking_sim_genre <- c(
   # Walking
   "Walking Simulator", "FMV")
 
@@ -142,7 +143,7 @@ genres <- list(
   casual = casual_genre,
   horror = horror_genre,
   music = music_genre,
-  wlking_sim = wlking_sim_genre
+  walking_sim = walking_sim_genre
 )
 
 
@@ -330,6 +331,7 @@ indie_games_cluster <- indie_games_data %>%
   
   km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
   indie_games_data$success_cluster<- km2$cluster
+  indie_games$success_cluster<- km2$cluster
   colnames(indie_games_data)
 ```
 Obtain most discriminative variable clusters:
@@ -389,8 +391,8 @@ top2_clusters <- recommendations_by_cluster %>%
   pull(success_cluster)
 
 # Add successful column (1 if in top 2 clusters, else 0)
-indie_games_data <- indie_games_data %>%
-  mutate(successful = as.integer(success_cluster %in% top2_clusters)) %>%
+indie_games <- indie_games %>%
+  mutate(successful = success_cluster %in% top2_clusters) %>%
   select(-success_cluster)
 ```
 
@@ -497,7 +499,7 @@ make_group_flag <- function(data, values, group_name,
 
 From the indie_games dataset, the games and their genres, characteristics and mechanics are turned into transactions
 ```{r}
-indie_games_attributes <- indie_games %>% select(tags, categories, genres)
+indie_games_attributes <- indie_games %>% select(tags, categories, genres, successful)
 
 # Generate or load Genres dataset
 out_file <- file.path("data", "indie_games_genre.rds")
@@ -516,6 +518,7 @@ if (file.exists(out_file)) {
     )
   }
   indie_games_genre <- indie_games_genre %>% select(-tags, -categories, -genres)
+  indie_games_genre$successful <- indie_games$successful
 
   saveRDS(indie_games_genre, out_file)
 }
@@ -530,13 +533,14 @@ if (file.exists(out_file)) {
 
   indie_games_mechanic <- indie_games_attributes
   for (nm in names(mechanics)) {
-    indie_games_mechanic <- make_group_flag(
+    indie_games_mechanic <- make_group_flag( 
       data = indie_games_mechanic,
       values = mechanics[[nm]],
       group_name = nm
     )
   }
   indie_games_mechanic <- indie_games_mechanic %>% select(-tags, -categories, -genres)
+  indie_games_mechanic$successful <- indie_games$successful
   
   saveRDS(indie_games_mechanic, out_file)
 }
@@ -545,3 +549,98 @@ if (file.exists(out_file)) {
 trans_indie_games_genre <- as(indie_games_genre, "transactions")
 trans_indie_games_mechanic<- as(indie_games_mechanic, "transactions")
 ```
+
+```{r}
+success_probability = sum(indie_games_genre$success, na.rm = TRUE)/length(indie_games_genre$success)
+```
+
+
+Asociation rules for genres:
+```{r}
+rules_success <- apriori(
+  trans_indie_games_genre,
+  parameter = list(
+    supp   = 100/length(indie_games_genre$success),
+    conf   = 0.7,
+    minlen = 2
+  ),
+  appearance = list(
+    default = "lhs",
+    rhs     = "successful"
+  ),
+  control = list(verbose = FALSE)
+)
+
+plot(rules_success)
+
+
+gm <- rules2groupedMatrix(rules_success, k = 20, lhs_label_items = 2)
+
+# force unique group names (extra-safe: prefix group id)
+labs <- paste0("G", seq_len(ncol(gm$m)), ": ", make.unique(colnames(gm$m)))
+colnames(gm$m)  <- labs
+colnames(gm$m2) <- labs
+
+plot(rules_success, method = "grouped matrix", groups = gm, limit = 30)
+```
+```{r}
+inspect(rules_success)
+```
+
+Plot counts
+```{r}
+indie_games_genre %>%
+  filter(successful) %>%
+  pivot_longer(
+    cols = -successful,
+    names_to = "genre",
+    values_to = "has_genre"
+  ) %>%
+  filter(has_genre) %>%
+  count(genre, sort = TRUE) %>%
+  ggplot(aes(x = reorder(genre, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Genre counts among successful games", x = "genre", y = "count")
+```
+
+
+Asociation rules for mechanics:
+```{r}
+rules_success <- apriori(
+  trans_indie_games_mechanic,
+  parameter = list(
+    supp   = 100/length(indie_games_genre$success),
+    conf   = 0.70,
+    minlen = 2
+  ),
+  appearance = list(
+    default = "lhs",
+    rhs     = "successful"
+  ),
+  control = list(verbose = FALSE)
+)
+
+plot(rules_success)
+gm <- rules2groupedMatrix(rules_success, k = 10, lhs_label_items = 5)
+colnames(gm$m) <- make.unique(colnames(gm$m))
+plot(rules_success, method = "grouped")
+```
+Plot mechanic counts:
+```{r}
+
+indie_games_mechanic %>%
+  filter(successful) %>%
+  pivot_longer(
+    cols = -successful,
+    names_to = "mechanic",
+    values_to = "has_mechanic"
+  ) %>%
+  filter(has_mechanic) %>%
+  count(mechanic, sort = TRUE) %>%
+  ggplot(aes(x = reorder(mechanic, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Mechanic counts among successful games", x = "mechanic", y = "count")
+```
+
