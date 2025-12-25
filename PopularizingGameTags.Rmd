@@ -1,0 +1,46 @@
+---
+title: "PopularizingGameTags"
+output: html_document
+date: "2025-12-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+
+```{r libraries, echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(knitr)
+library(tidyverse)
+```
+
+
+```{r loading data, echo = FALSE}
+steam = read.csv("data/kaggle_march2025_full.csv")
+```
+
+# Proposing a popularity metric
+The ratio of the average playing time by the time passed since the game's release might yield a success metric
+It is to be noted that often popular games can be played a lot during its release and then lose major part of its player base. Since we do not have that information, this metric shall substitude
+```{r get popular games}
+df <- steam
+df$success <- as.numeric(as.Date("2025-03-01")-as.Date(steam$release_date))
+
+```
+
+
+```{r get popular games}
+df <- steam
+df$success <- as.numeric(as.Date("2025-03-01")-as.Date(steam$release_date))
+
+popularGames <-df[df$success >=1110,]
+
+```
+

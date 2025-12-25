@@ -174,3 +174,30 @@ filtered_data <- first_cleaned_steam %>%
 
 (filtered_data)
 ```
+
+
+
+
+
+
+
+
+
+
+
+# Can a signle game have enough influence to make other games have its tag?
+
+```{r popularGames}
+
+buyedGames <- fourth_cleaned_steam[ fourth_cleaned_steam$estimated_owners_min >= 500000,]
+buyedGames
+```
+```{r get popular games}
+popularGames <- buyedGames
+popularGames$success <- as.numeric(as.Date("2025-03-01")-as.Date(popularGames$release_date))
+
+popularGames <-popularGames[popularGames$success >=1110,]
+popularGames[popularGames$appid == 945360,]$tags
+```
+
+
