@@ -216,9 +216,42 @@ get_unique_dict_keys <- function(x) {
 #NOTE: 
 while checking for "popular" games the amount of them was quite small
 but if we consider unsuccesful games, the trends are much clearer
+
+```{r}
+  taggedGames <- popularGames %>% 
+  filter(
+    if_any(
+      tags,
+      ~ str_detect(.x, "Social Deduction")
+    )
+  )
+  
+  
+  ref_date <- popularGames$release_date[popularGames$appid == 945360]
+  taggedGames$date_diff <- round(as.numeric(
+    as.Date(taggedGames$release_date) - as.Date(ref_date)
+  )/30)
+  trendPre <- taggedGames[taggedGames$date_diff < 0,]
+  trendAft <- taggedGames[taggedGames$date_diff > 0,]
+  
+  freq_table <- as.data.frame(table(trendPre$date_diff))
+  freq_table
+  colnames(freq_table) <- c("date_diff", "freq")
+  modelPre <- lm(freq ~ date_diff, data=freq_table)
+  modelPre
+  
+  freq_table <- as.data.frame(table(trendAft$date_diff))
+  colnames(freq_table) <- c("date_diff", "freq")
+  freq_table
+  modelAft <- lm(freq ~ date_diff, data=freq_table)
+  modelAft
+  plot(freq_table$date_diff, freq_table$freq, pch = 16, col = "black")
+  abline(modelAft, col = "blue", lwd = 2)
+```
+
 ```{r amongUs study}
 
-steam_tags <- get_unique_dict_keys(popularGames$tags)
+
 
 
 amongUsLike <- popularGames %>% 
@@ -231,9 +264,9 @@ amongUsLike <- popularGames %>%
 amongUsLike
 ref_date <- popularGames$release_date[popularGames$appid == 945360]
 
-amongUsLike$date_diff <- as.numeric(
+amongUsLike$date_diff <- round(as.numeric(
   as.Date(amongUsLike$release_date) - as.Date(ref_date)
-)/30
+)/30)
 hist(
   amongUsLike$date_diff,
   breaks = "Sturges",
@@ -245,6 +278,31 @@ hist(
 )
 
 
+```
+
+```{r slopeChangeDetector}
+checkChangeInSlope <- function(games,tag, gamePoint){
+  taggedGames <- games %>% 
+  filter(
+    if_any(
+      tags,
+      ~ str_detect(.x, tag)
+    )
+  )
+  
+  
+  
+  taggedGames$date_diff <- as.numeric(
+    as.Date(taggedGames$release_date) - as.Date(gamePoint$release_date)
+  )/30
+  trendPre <- taggedGames[taggedGames$date_diff < 0,]
+  trendAft <- taggedGames[taggedGames$date_diff > 0,]
+  
+  freq_table <- as.data.frame(table(trendPre$date_diff))
+  colnames(freq_table) <- c("date_diff", "freq")
+  
+
+}
 ```
 
 ```{r single tag study}
