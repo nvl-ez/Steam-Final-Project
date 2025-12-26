@@ -189,15 +189,65 @@ filtered_data <- first_cleaned_steam %>%
 
 ```{r popularGames}
 
-buyedGames <- fourth_cleaned_steam[ fourth_cleaned_steam$estimated_owners_min >= 500000,]
-buyedGames
+#buyedGames <- fourth_cleaned_steam[ fourth_cleaned_steam$estimated_owners_min >= 500000,]
+buyedGames <- fourth_cleaned_steam
 ```
 ```{r get popular games}
 popularGames <- buyedGames
 popularGames$success <- as.numeric(as.Date("2025-03-01")-as.Date(popularGames$release_date))
 
-popularGames <-popularGames[popularGames$success >=1110,]
+#popularGames <-popularGames[popularGames$success >=1110,]
 popularGames[popularGames$appid == 945360,]$tags
 ```
 
+#TODO: merge this later, grabbed from Nahuel's code
+```{r}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
 
+#NOTE: 
+while checking for "popular" games the amount of them was quite small
+but if we consider unsuccesful games, the trends are much clearer
+```{r amongUs study}
+
+steam_tags <- get_unique_dict_keys(popularGames$tags)
+
+
+amongUsLike <- popularGames %>% 
+  filter(
+    if_any(
+      tags,
+      ~ str_detect(.x, "Social Deduction")
+    )
+  )
+amongUsLike
+ref_date <- popularGames$release_date[popularGames$appid == 945360]
+
+amongUsLike$date_diff <- as.numeric(
+  as.Date(amongUsLike$release_date) - as.Date(ref_date)
+)/30
+hist(
+  amongUsLike$date_diff,
+  breaks = "Sturges",
+  main = "Frequency of Date Differences",
+  xlab = "Difference (Months)",
+  ylab = "Frequency",
+  col = "lightgray",
+  border = "white"
+)
+
+
+```
+
+```{r single tag study}
+
+
+```
