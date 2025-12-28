@@ -1,7 +1,51 @@
 ---
-title: "SteamSuccessfulIndieGamesStudy"
-output: html_document
+output:
+  pdf_document:
+    toc: false
+    number_sections: true
+  html_document:
+    toc: true
+    toc_depth: 5
 ---
+
+\pagenumbering{gobble}
+
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+
+\includegraphics[width=0.35\textwidth]{img/uib.png}\par
+\vspace{1.5cm}
+
+{\LARGE\bfseries 21746 - Data Mining\par}
+\vspace{0.3cm}
+{\LARGE\bfseries Final Project\par}
+\vspace{0.8cm}
+{\Large Steam Successful Indie Games Study\par}
+
+\vspace{1.8cm}
+
+{\large
+Iván Pulgar Rodas\\
+Jordi Sevilla Marí\\
+Nahuel Vazquez\\
+Yelyzaveta Denysova\\
+Xiaozhe Cheng\\
+Gabriel Oliver Artigues\\
+Arturo Mus Mejías\par}
+
+\vfill
+{\large 2026-01-10\par}
+\end{titlepage}
+
+\clearpage
+\pagenumbering{gobble}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -9,9 +53,7 @@ knitr::opts_chunk$set(
   warning = FALSE,
   message = FALSE
 )
-```
 
-```{r}
 # Core data manipulation
 library(dplyr)
 library(tidyr)
@@ -32,20 +74,21 @@ library(arulesViz)
 # Tidy evaluation (used in helpers)
 library(rlang)
 
+
+steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.strings = FALSE)
 ```
 
+# Introduction
 
-```{r loading data, echo = FALSE}
-steam = read.csv("data/kaggle_march2025_full.csv")
+```{r, include=FALSE}
+# **IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
+
+# **NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
 ```
 
+## Explanation of the Attributes
 
-**IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
-
-**NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
-
-
-The dataset we will be working with contains a total number of 94948 observations and 47 columns or variables. The columns are described bellow:
+The dataset we will be working with contains a total number of 94948 observations and 47 columns or variables. The columns that will be used are described bellow:
 
 -   **`appid`**: Unique idetnifier of the game on Steam. [num]
 -   **`name`**: Name of the game. [text]
@@ -77,6 +120,32 @@ The dataset we will be working with contains a total number of 94948 observation
 -   **`tags`**: List of tags the game has with its name and its key. [**NO SE QUE CATEGORIA DARLE**]
 -   **`pct_pos_total`**: Percentage of all reviews that are positive. [num]
 -   **`num_reviews_total`**: Nummber of the total reviews the game has. [num]
+
+## Objectives
+
+**TODO: ADD OBJECTIVES OF STUDY**
+
+# Procesing de data
+
+General look of the dataset
+
+```{r}
+summary(steam)
+```
+
+Explanation of first looks of it, bad formatting, NA's, negative values...
+
+## Handling of NA values
+
+The attributes with missing values are:
+
+```{r}
+na_counts <- steam %>% summarise_all(~ sum(is.na(.)))
+
+print(na_counts)
+```
+
+The columns with missing values are as follows:
 
 
 ```{r cleaning, echo = FALSE}
@@ -111,14 +180,336 @@ cleaned_steam <- cleaned_steam %>%
     "estimated_owners_min",
     "estimated_owners_max"
   ) %>%
-  select(-estimated_owners) %>%
+  select(-estimated_owners)
 ```
 
 
 LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha fallado durante su ejecución. Si vamos a trabajar con las reseñas podríamos decir en la presentación que vamos a probar de volver a intentar scrappear la información 
 
 ```{r info of the dataset, echo = FALSE}
-str(steam)
-summary(steam)
+str(cleaned_steam)
+summary(cleaned_steam)
 ```
 
+
+# Requeriments for Successful Indie Games
+
+Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
+
+```{r}
+# Funcion helper 
+get_unique_list_values <- function(x) {
+  x <- x[x != "[]"]
+  x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
+  x <- gsub("['\"]", "", x)# quitar ' y "
+  
+  elements <- strsplit(x, ",") # dividr por comas
+
+  vals <- trimws(unlist(elements, use.names = FALSE)) # aplanar y trim
+  vals <- vals[vals != ""]
+  
+  sort(unique(vals))
+}
+```
+
+Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
+```{r}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
+
+
+## Obtain Unique values for different columns
+```{r}
+steam_categories <- get_unique_list_values(cleaned_steam$categories)
+steam_categories
+```
+```{r}
+steam_genres <- get_unique_list_values(cleaned_steam$genres)
+steam_genres
+```
+
+
+```{r}
+steam_tags <- get_unique_dict_keys(cleaned_steam$tags)
+steam_tags
+```
+
+From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
+```{r}
+#Genres
+action_genre <- c(
+  # Action
+  "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
+  "Arcade", "Immersive Sim", "Metroidvania", "Musou", "Sandbox", "Survival",
+  "Survival Horror", "MOBA")
+shooter_genre<- c(
+  # Shooter
+  "Arena Shooter", "Battle Royale", "Boomer Shooter", "Bullet Hell", "Extraction Shooter",
+  "FPS", "Hero Shooter", "Looter Shooter", "On-Rails Shooter", "Third-Person Shooter",
+  "Top-Down Shooter", "Twin Stick Shooter", "Vehicular Combat", "Naval Combat",
+  "Combat Racing")
+roguelike_genre <- c(
+  # Roguelike
+  "Rogue-like", "Rogue-lite", "Roguevania", "Traditional Roguelike",
+  "Roguelike Deckbuilder", "Mystery Dungeon")
+RPG_genre <- c(
+  # RPG
+  "RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Otome", 
+  "Dating Sim", "Visual Novel", "Interactive Fiction", "Text-Based", 
+  "MMORPG", "MMO")
+strategy_genre <- c(
+  # Strategy
+  "Strategy", "4X", "Grand Strategy", "RTS", "Real Time Tactics",
+  "Turn-Based Strategy", "Tactical", "Tabletop", "Wargame", "Political Sim",
+  "God Game", "Management", "Colony Sim", "City Builder", "Shop Keeper",
+  "Tower Defense", "Creature Collector")
+simulation_genre <- c(
+  # Simulation
+  "Simulation", "Automobile Sim", "Farming Sim", "Medical Sim",
+  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim")
+sport_genre <- c(
+  # Sports
+  "Sports", "Baseball", "Basketball", "Bowling", "Boxing", "BMX", "Cricket",
+  "Football", "Football (American)", "Football (Soccer)", "Soccer",
+  "Golf", "Hockey", "Mini Golf", "Motocross", "Pool", "Racing", "Rugby",
+  "Skateboarding", "Skating", "Skiing", "Snowboarding", "Snooker", "Tennis",
+  "Volleyball", "Wrestling", "Driving")
+fighting_genre <- c(
+  # Fighting
+  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like")
+platformer_genre <- c(
+  # Platformers & runners 
+  "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
+  "Runner", "Open World Survival Craft")
+tabletop_genre <- c(
+  # Puzzle, logic, board & card games
+  "Puzzle", "Puzzle-Platformer", "Logic", "Mahjong",
+  "Match 3", "Tile-Matching", "Sokoban", "Solitaire", "Trivia",
+  "Board Game", "Card Game", "Trading Card Game", "Hidden Object",
+  "Escape Room", "Chess", "Word Game", "Point & Click")
+casual_genre <- c(
+  #  Casual / idle
+  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball")
+horror_genre <- c(
+  # Horror
+  "Horror", "Psychological Horror")
+music_genre <- c(
+  # Music & rhythm
+  "Music", "Rhythm", "Typing")
+walking_sim_genre <- c(
+  # Walking
+  "Walking Simulator", "FMV")
+
+genres <- list(
+  action = action_genre,
+  shooter = shooter_genre,
+  roguelike = roguelike_genre,
+  RPG = RPG_genre,
+  strategy = strategy_genre,
+  simulation = simulation_genre,
+  sport = sport_genre,
+  fighting = fighting_genre,
+  platformer = platformer_genre,
+  tabletop = tabletop_genre,
+  casual = casual_genre,
+  horror = horror_genre,
+  music = music_genre,
+  walking_sim = walking_sim_genre
+)
+
+
+#Mechanics
+resource_management_mechanic <- c(
+  # Economy, building, resources
+  "Base-Building", "Building", "Resource Management", "Inventory Management",
+  "Crafting", "Automation", "Mining", "Farming")
+
+customization_mechanic <- c(
+  # Customization
+  "Gun Customization", "Character Customization")
+movement_mechanic <- c(
+  # Movement
+  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper")
+physics_mechanic <- c(
+  # Physics
+  "Physics", "Destruction")
+failure_mechanic <- c(
+  # Failure
+  "Permadeath", "Perma Death")
+procedural_mechanic <- c(
+  # Procedural
+  "Procedural Generation", "Music-Based Procedural Generation")
+turn_mechanic <- c(
+  # Turns
+  "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
+  "Real-Time", "Real-Time with Pause",
+  "Time Manipulation", "Time Management", "Time Attack")
+spatial_rules_mechanic <- c(
+  # Spatial rules
+  "Grid-Based Movement", "Hex Grid")
+quicktime_events_mechanic <- c(
+  # QTE
+  "Quick-Time Events")
+narrative_mechanic <- c(
+  # Narrative logic
+  "Choices Matter", "Multiple Endings", "Nonlinear")
+exploration_mechanic <- c(
+  # Exploration & structure
+  "Exploration", "Dungeon Crawler", "Collectathon",
+  "Boss Rush", "Side Scroller", "Loot")
+social_mechanic <- c(
+  # Social deduction
+  "Social Deduction")
+card_mechanic <- c(
+  # Card/Deck mechanics
+  "Deckbuilding", "Card Battler")
+programming_mechanic <- c(
+  # Programming
+  "Programming", "Coding")
+economy_mechanic <- c(
+  # Economy
+  "Trading", "Economy", "Capitalism",
+  "Diplomacy")
+modding_mechanic <- c(
+  # Modding / creation
+  "Level Editor", "Moddable", "Mod")
+tutorial_mechanic <- c(
+  # Tutorial
+  "Tutorial")
+
+mechanics <- list(
+  resource_management = resource_management_mechanic, 
+  customization = customization_mechanic, 
+  movement = movement_mechanic, 
+  physics = physics_mechanic, 
+  failure = failure_mechanic, 
+  procedural = procedural_mechanic, 
+  turn = turn_mechanic,
+  spatial_rules = spatial_rules_mechanic,
+  quicktime_events = quicktime_events_mechanic,
+  narrative = narrative_mechanic,
+  exploration = exploration_mechanic,
+  social = social_mechanic,
+  card = card_mechanic,
+  programming = programming_mechanic,
+  economy = economy_mechanic,
+  modding = modding_mechanic,
+  tutorial = tutorial_mechanic
+)
+
+# Characteristics
+camera_characteristic <- c(
+  # Dimensionality & camera
+  "2D", "2.5D", "3D",
+  "Isometric", "Top-Down",
+  "6DOF",
+  "First-Person", "Third Person")
+
+vr_characteristic <- c(
+  # VR
+  "VR", "VR Only", "Asymmetric VR")
+
+players_characteristic <- c(
+  # Player count / mode
+  "Singleplayer",
+  "Multiplayer", "Massively Multiplayer",
+  "Co-op", "Local Co-Op", "Online Co-Op", "Co-op Campaign",
+  "4 Player Local", "Split Screen")
+team_characteristic <- c(
+  # Team/role structure
+  "PvP", "PvE", "Team-Based",
+  "Asynchronous Multiplayer")
+esports_characteristic <- c(
+  # Competitive/e-sports
+  "e-sports")
+
+characteristics <- list(
+  camera = camera_characteristic,
+  vr = vr_characteristic,
+  players = players_characteristic,
+  team = team_characteristic,
+  esports = esports_characteristic
+)
+```
+
+
+Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
+```{r}
+indie <- c("Crowdfunded", "Kickstarter", "Indie")
+indie_pattern <- str_c(indie, collapse = "|")
+
+indie_games <- steam %>% 
+  filter(
+    if_any(
+      c(categories, genres, tags),
+      ~ str_detect(.x, indie_pattern)
+    )
+  )
+```
+
+Prepare data for determining successful games
+```{r}
+indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
+
+
+
+#transform suported languages into count
+add_column_count <- function(df, column, new_col) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{new_col}" := case_when(
+        !!column_quo == "[]" ~ 0L,
+        TRUE ~ str_count(!!column_quo, "'") %/% 2L
+      )
+    )
+}
+
+add_range_minmax <- function(df, column, min_column, max_column) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
+      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
+    )
+}
+
+#Limpiar esta linea con los cambios de arturo TODO
+indie_games_data <- indie_games_data %>% 
+  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
+  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
+  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
+  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
+  mutate(linux = as.integer(linux == "True")) %>% # parse logical to int
+  select(-estimated_owners)
+```
+
+Cluster the data:
+```{r}
+indie_games_cluster <- indie_games_data %>% 
+  add_column_count(supported_languages, "languages_count") %>% # Count languages
+  select(-appid, -name, -supported_languages)
+
+
+  indie_games_cluster <- indie_games_cluster %>% mutate( # Avoid scaling binary columns
+    across(
+      where(is.numeric) & !all_of(c("windows", "mac", "linux")),
+      ~ as.numeric(scale(.))
+    )
+  )
+  
+  km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
+  indie_games_data$success_cluster<- km2$cluster
+  indie_games$success_cluster<- km2$cluster
+  colnames(indie_games_data)
+```

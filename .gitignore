@@ -4,3 +4,5 @@ data/indie_games_mechanic.rds
 data/indie_games_characteristic.rds
 .Rhistory
 .RDataTmp
+.Rproj.user
+*Rproj*
