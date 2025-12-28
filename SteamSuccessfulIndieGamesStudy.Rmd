@@ -94,6 +94,27 @@ cleaned_steam <- steam %>%
   ungroup()
 ```
 
+```{r}
+add_range_minmax <- function(df, column, min_column, max_column) {
+  column_quo <- enquo(column)
+
+  df %>%
+    mutate(
+      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
+      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
+    )
+}
+
+cleaned_steam <- cleaned_steam %>%
+  add_range_minmax(
+    estimated_owners,
+    "estimated_owners_min",
+    "estimated_owners_max"
+  ) %>%
+  select(-estimated_owners) %>%
+```
+
+
 LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha fallado durante su ejecución. Si vamos a trabajar con las reseñas podríamos decir en la presentación que vamos a probar de volver a intentar scrappear la información 
 
 ```{r info of the dataset, echo = FALSE}
