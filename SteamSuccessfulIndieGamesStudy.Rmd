@@ -1,0 +1,103 @@
+---
+title: "SteamSuccessfulIndieGamesStudy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+# Core data manipulation
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(purrr)
+
+# Dates & time
+library(lubridate)
+
+# Plotting
+library(ggplot2)
+library(scales)
+
+# Association rules (what you already used)
+library(arules)
+library(arulesViz)
+
+# Tidy evaluation (used in helpers)
+library(rlang)
+
+```
+
+
+```{r loading data, echo = FALSE}
+steam = read.csv("data/kaggle_march2025_full.csv")
+```
+
+
+**IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
+
+**NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
+
+
+The dataset we will be working with contains a total number of 94948 observations and 47 columns or variables. The columns are described bellow:
+
+-   **`appid`**: Unique idetnifier of the game on Steam. [num]
+-   **`name`**: Name of the game. [text]
+-   **`released_date``**: Represents the date where the game was released. [time]
+-   **`required_age``**: Corresponds to the minimum age required to play the game. [num]
+-   **`price`**: How much the game costs. If its 0 it means that the game is Free to Play. [num]
+-   **`dlc_count`**: Ammount of DLCs (Downloadable Contents) the game has. [num]
+-   **`suppport_url`**: URL to the support page of the game. [text]
+-   **`windows`**: Determines if the game runs in windows. [categorical]
+-   **`mac`**: Determines if the game runs in mac. [categorical]
+-   **`linux`**: Determines if the game runs in linux. [categorical]
+-   **`metacritic_score`**: Metacritic score based on critcical reviews (reviews from professionalss). By performing an investigation we think that an score of 0 means that when the scraping of the data was done there where no reviews for that game yet. [num]
+-   **`achievements`**: Number of achievements the game has. [num]
+-   **`recommendations``**: Ammount of user recommendations. [num]
+-   **`supported_languages`**: List of languages that the game supports.[**NO SÉ QUE CATEGORÍA DARLE**]
+-   **`packages`**: Avaliable packages for the game. It contains the name and a description of the package and the names, descriptions and subprices of the subpackages. [**LO MISMO QUE ARRIBA**]
+-   **`Developers`**: List of developers associated with the game. [**LO MISMO QUE ARRIBA**]
+-   **`publishers`**: List of publishers associated with the game. [**LO MISMO QUE ARRIBA**]
+-   **`categories`**: List of categories that the game has. [**LO MISMO QUE ARRIBA**]
+-   **`genres`**: List of genres that the game belongs to. [**LO MISMO QUE ARRIBA**]
+-   **`positive`**: Ammount of positive votes the game has. [num]
+-   **`negative`**: Ammount of negative votes the game has. [num]
+-   **`estimated_owners`**: Estimated owners of the game. [text]
+-   **`average_playtime_forever`**: Average playtime since March 2009 measured in minutes. [num]
+-   **`average_playtime_2weeks`**: Average playtime in the last two weeks measured in minutes. [num]
+-   **`median_playtime_forever`**: Median playtime since March 2009 measured in minutes. [num]
+-   **`median_playtime_2weeks`**: Median playtime in the last two weeks measured in minutes.[num]
+-   **`peak_ccu`**: Number of current users playing the day before the data was scrapped. [num]
+-   **`tags`**: List of tags the game has with its name and its key. [**NO SE QUE CATEGORIA DARLE**]
+-   **`pct_pos_total`**: Percentage of all reviews that are positive. [num]
+-   **`num_reviews_total`**: Nummber of the total reviews the game has. [num]
+
+
+```{r cleaning, echo = FALSE}
+cleaned_steam <- steam %>%
+  # Removed not relevant/duplicated/unused columns
+  select(-detailed_description, -about_the_game, -short_description, -reviews, -header_image, -website, -support_url, -support_email, -metacritic_url, -notes, -full_audio_languages, -screenshots, -movies, -user_score, -score_rank, -discount, -pct_pos_recent, -num_reviews_recent) %>%
+  # Remove games that contains "Playtest" in the name
+  filter(!grepl("Playtest", name, ignore.case = TRUE)) %>%
+  # Games with blank name
+  filter(!is.na(name), name != "", name != " ") %>%
+  # From the repeated games we keep with those that have the higher price and the higher amount of total reviews 
+  arrange(name, desc(price), desc(num_reviews_total)) %>%
+  group_by(name) %>%
+  slice(1) %>%
+  ungroup()
+```
+
+LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha fallado durante su ejecución. Si vamos a trabajar con las reseñas podríamos decir en la presentación que vamos a probar de volver a intentar scrappear la información 
+
+```{r info of the dataset, echo = FALSE}
+str(steam)
+summary(steam)
+```
+
