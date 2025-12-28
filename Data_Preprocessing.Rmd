@@ -255,6 +255,17 @@ but if we consider unsuccesful games, the trends are much clearer
 
   plot(freq_table$date_diff, freq_table$freq, pch = 16, col = "black")
   abline(modelAft, col = "blue", lwd = 2)
+  
+  freq_table <- as.data.frame(table(taggedGames$date_diff))
+  colnames(freq_table) <- c("date_diff", "freq")
+  freq_table$freq <- as.numeric(as.character(freq_table$freq))
+  freq_table$date_diff <- as.numeric(as.character(freq_table$date_diff))
+  freq_table
+  modelAll <- lm(freq ~ date_diff, data=freq_table)
+  summary(modelAll)
+  
+  plot(freq_table$date_diff, freq_table$freq, pch = 16, col = "black")
+  abline(modelAll, col = "blue", lwd = 2)  
 ```
 
 ```{r amongUs study}
@@ -274,12 +285,12 @@ ref_date <- popularGames$release_date[popularGames$appid == 945360]
 
 amongUsLike$date_diff <- round(as.numeric(
   as.Date(amongUsLike$release_date) - as.Date(ref_date)
-)/30)
+)/365)
 hist(
   amongUsLike$date_diff,
   breaks = "Sturges",
   main = "Frequency of Date Differences",
-  xlab = "Difference (Months)",
+  xlab = "Difference (Years)",
   ylab = "Frequency",
   col = "lightgray",
   border = "white"
