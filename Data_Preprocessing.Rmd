@@ -230,21 +230,29 @@ but if we consider unsuccesful games, the trends are much clearer
   ref_date <- popularGames$release_date[popularGames$appid == 945360]
   taggedGames$date_diff <- round(as.numeric(
     as.Date(taggedGames$release_date) - as.Date(ref_date)
-  )/30)
+  )/(365))
   trendPre <- taggedGames[taggedGames$date_diff < 0,]
   trendAft <- taggedGames[taggedGames$date_diff > 0,]
   
   freq_table <- as.data.frame(table(trendPre$date_diff))
-  freq_table
   colnames(freq_table) <- c("date_diff", "freq")
+  freq_table$freq <- as.numeric(as.character(freq_table$freq))
+  freq_table$date_diff <- as.numeric(as.character(freq_table$date_diff))
+  freq_table
   modelPre <- lm(freq ~ date_diff, data=freq_table)
-  modelPre
+  summary(modelPre)
+  
+  plot(freq_table$date_diff, freq_table$freq, pch = 16, col = "black")
+  abline(modelPre, col = "blue", lwd = 2)
   
   freq_table <- as.data.frame(table(trendAft$date_diff))
   colnames(freq_table) <- c("date_diff", "freq")
+  freq_table$freq <- as.numeric(as.character(freq_table$freq))
+  freq_table$date_diff <- as.numeric(as.character(freq_table$date_diff))
   freq_table
   modelAft <- lm(freq ~ date_diff, data=freq_table)
-  modelAft
+  summary(modelAft)
+
   plot(freq_table$date_diff, freq_table$freq, pch = 16, col = "black")
   abline(modelAft, col = "blue", lwd = 2)
 ```
