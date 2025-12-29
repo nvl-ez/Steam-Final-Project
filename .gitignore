@@ -1,7 +1,4 @@
-data/kaggle_march2025_full.csv
-data/indie_games_genre.rds
-data/indie_games_mechanic.rds
-data/indie_games_characteristic.rds
+data/*
 .Rhistory
 .RDataTmp
 .Rproj.user
