@@ -536,7 +536,6 @@ ref_game_SlayTheSpire$release_date
 ```{r}
 build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
                                    bin = c("month", "year"),
-                                   exclude_window_months = 1,
                                    window_months = 60,
                                    max_date = as.Date("2025-02-28")) {
   bin <- match.arg(bin)
@@ -560,8 +559,6 @@ build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
     ) %>%
     # Window in BIN space, with post capped by max_date
     filter(t_bin >= t_min, t_bin <= t_max) %>%
-    # Exclude launch window in BIN space
-    filter(abs(t_bin) >= exclude_window_months) %>%
     count(t_bin, name = "freq")
 
   full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
@@ -584,9 +581,8 @@ ts_slayTheSpire <- build_tag_timeseriesV3(
   games = cleaned_steam,
   tag_pattern = "Roguelike Deckbuilder",
   ref_date = ref_game_SlayTheSpire$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 84          # ±6 years
+  bin = "month",
+  window_months = 84 # ±6 years
 )
 
 # Piecewise model (pre trend + post jump + slope change)
@@ -615,45 +611,32 @@ ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
 ```{r}
 build_global_timeseries <- function(games, ref_date,
                                     bin = c("month", "year"),
-                                    exclude_window_months = 1,
                                     window_months = 60,
                                     max_date = as.Date("2025-02-28")) {
 
   bin <- match.arg(bin)
+  ref_date <- as.Date(ref_date)
+  max_date <- as.Date(max_date)
 
-  # --- compute max available months until Feb 2025 ---
-  max_months_available <- as.numeric(
-    difftime(max_date, ref_date, units = "days")
-  ) / (365.25 / 12)
+  # months available from ref_date up to max_date (included)
+  max_months_available <- as.numeric(difftime(max_date, ref_date, units = "days")) / (365.25 / 12)
+  effective_post_months <- min(window_months, floor(max_months_available))
 
-  effective_window_months <- min(window_months, floor(max_months_available))
+  # translate to bin limits
+  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
+  t_max <- if (bin == "month")  effective_post_months else floor(effective_post_months / 12)
 
-  # --- compute time relative to launch ---
-  df_raw <- games %>%
+  df_binned <- games %>%
     mutate(
-      t_months = as.numeric(
-        difftime(release_date, ref_date, units = "days")
-      ) / (365.25 / 12)
-    ) %>%
-    filter(t_months <= effective_window_months) %>%   # cap at Feb 2025
-    filter(abs(t_months) > exclude_window_months)
-
-  # --- binning ---
-  df_binned <- df_raw %>%
-    mutate(
+      t_months = as.numeric(difftime(release_date, ref_date, units = "days")) / (365.25 / 12),
       t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
     ) %>%
+    # filter in BIN space (prevents the "last bin always 0" artifact)
+    filter(t_bin >= t_min, t_bin <= t_max) %>%
     count(t_bin, name = "freq")
 
-  # --- full bin sequence ---
-  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
-  t_max <- if (bin == "month") effective_window_months else floor(effective_window_months / 12)
+  full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
 
-  full_bins <- tibble(
-    t_bin = seq(t_min, t_max, by = 1)
-  )
-
-  # --- fill missing bins ---
   full_bins %>%
     left_join(df_binned, by = "t_bin") %>%
     mutate(freq = tidyr::replace_na(freq, 0L)) %>%
@@ -671,7 +654,6 @@ ts_global <- build_global_timeseries(
   games = cleaned_steam,
   ref_date = ref_game_SlayTheSpire$release_date,
   bin = "month",
-  exclude_window_months = 1,
   window_months = 84
 )
 
@@ -733,9 +715,8 @@ ts_BindingOfIsaac <- build_tag_timeseriesV3(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaac$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 168         # ±6 years
+  bin = "month", 
+  window_months = 120 # ±10 years
 )
 
 ref_game_BindingOfIsaacRebirth <- cleaned_steam %>% filter(appid == 250900) %>% slice(1)
@@ -748,23 +729,27 @@ ts_BindingOfIsaacRebirth <- build_tag_timeseriesV3(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 120         # ±6 years
+  bin = "month",
+  window_months = 120 # ±10 years
 )
 ```
 
 ```{r}
 ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaac, t < 0)) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaac, t > 0)) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaac$t),to = max(ts_BindingOfIsaac$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Tag adoption around The Binding Of Isaac",
     subtitle = "Tag: Roguelike — months relative to launch (t=0)",
-    x = "Months relative to launch (t=0)",
-    y = "Number of released games with the tag RogueLike(per month)"
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
   ) +
   theme_minimal()
 
@@ -776,8 +761,7 @@ ts_global <- build_global_timeseries(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaac$release_date,
   bin = "month",
-  exclude_window_months = 1,
-  window_months = 180
+  window_months = 120
 )
 
 plot_df <- bind_rows(
@@ -787,20 +771,19 @@ plot_df <- bind_rows(
 
 ggplot(plot_df, aes(x = t, y = freq, color = type)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(
-    data = subset(plot_df, t < 0),
-    method = "lm", se = FALSE
-  ) +
-  geom_smooth(
-    data = subset(plot_df, t > 0),
-    method = "lm", se = FALSE
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaac$t),to = max(ts_BindingOfIsaac$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
   ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
-    title = "Slope comparison around Slay the Spire launch",
+    title = "Slope comparison around The BInding of Isaac launch",
     subtitle = "Target tag vs overall Steam release trend (monthly bins)",
-    x = "Months relative to launch (t = 0)",
-    y = "Number of released games per month",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
     color = "Series"
   ) +
   theme_minimal()
@@ -811,14 +794,19 @@ ggplot(plot_df, aes(x = t, y = freq, color = type)) +
 ```{r}
 ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t > 0)) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t > 0)) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Tag adoption around The Binding Of Isaac REBIRTH",
     subtitle = "Tag: Roguelike — months relative to launch (t=0)",
-    x = "Months relative to launch (t=0)",
-    y = "Number of released games with the tag RogueLike(per month)"
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
   ) +
   theme_minimal()
 
@@ -830,31 +818,29 @@ ts_global <- build_global_timeseries(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
   bin = "month",
-  exclude_window_months = 1,
   window_months = 120
 )
 
 plot_df <- bind_rows(
-  ts_BindingOfIsaac %>% mutate(type = "Roguelike"),
+  ts_BindingOfIsaacRebirth %>% mutate(type = "Roguelike"),
   ts_global %>% mutate(type = "All games")
 )
 
 ggplot(plot_df, aes(x = t, y = freq, color = type)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(
-    data = subset(plot_df, t < 0),
-    method = "lm", se = FALSE
-  ) +
-  geom_smooth(
-    data = subset(plot_df, t > 0),
-    method = "lm", se = FALSE
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
   ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
-    title = "Slope comparison around Slay the Spire launch",
-    subtitle = "Target tag vs overall Steam release trend (monthly bins)",
-    x = "Months relative to launch (t = 0)",
-    y = "Number of released games per month",
+    title = "Slope comparison around The BInding of Isaac Rebirth launch",
+    subtitle = "Roguelike tag vs overall Steam releases",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
     color = "Series"
   ) +
   theme_minimal()
