@@ -165,7 +165,7 @@ cleaned_steam <- steam %>%
   filter(!is.na(release_date))
 ```
 
-```{r}
+```{r, echo = FALSE}
 add_range_minmax <- function(df, column, min_column, max_column) {
   column_quo <- enquo(column)
 
@@ -198,7 +198,7 @@ summary(cleaned_steam)
 
 Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
 
-```{r}
+```{r, echo = FALSE}
 # Funcion helper 
 get_unique_list_values <- function(x) {
   x <- x[x != "[]"]
@@ -215,7 +215,7 @@ get_unique_list_values <- function(x) {
 ```
 
 Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
-```{r}
+```{r, echo = FALSE}
 get_unique_dict_keys <- function(x) {
   x <- x[x != "[]"]
   
@@ -229,23 +229,23 @@ get_unique_dict_keys <- function(x) {
 
 
 ## Obtain Unique values for different columns
-```{r}
+```{r, echo = FALSE}
 steam_categories <- get_unique_list_values(cleaned_steam$categories)
 steam_categories
 ```
-```{r}
+```{r, echo = FALSE}
 steam_genres <- get_unique_list_values(cleaned_steam$genres)
 steam_genres
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 steam_tags <- get_unique_dict_keys(cleaned_steam$tags)
 steam_tags
 ```
 
 From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
-```{r}
+```{r, echo = FALSE}
 #Genres
 action_genre <- c(
   # Action
@@ -444,7 +444,7 @@ characteristics <- list(
 
 
 Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
-```{r}
+```{r, echo = FALSE}
 indie <- c("Crowdfunded", "Kickstarter", "Indie")
 indie_pattern <- str_c(indie, collapse = "|")
 
@@ -458,7 +458,7 @@ indie_games <- steam %>%
 ```
 
 Prepare data for determining successful games
-```{r}
+```{r, echo = FALSE}
 indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
 
 
@@ -497,7 +497,7 @@ indie_games_data <- indie_games_data %>%
 ```
 
 Cluster the data:
-```{r}
+```{r, echo = FALSE}
 indie_games_cluster <- indie_games_data %>% 
   add_column_count(supported_languages, "languages_count") %>% # Count languages
   select(-appid, -name, -supported_languages)
@@ -525,7 +525,7 @@ indie_games_cluster <- indie_games_data %>%
 ## Game study: Slay the Spire (Roguelike Deckbuilder)
 
 
-```{r}
+```{r, echo = FALSE}
 ref_game_SlayTheSpire <- cleaned_steam %>% filter(appid == 646570) %>% slice(1)
 
 ref_game_SlayTheSpire$name
@@ -533,55 +533,45 @@ ref_game_SlayTheSpire$release_date
 ```
 
 
-```{r}
-build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
-                                   bin = c("month", "year"),
-                                   window_months = 60,
-                                   max_date = as.Date("2025-02-28")) {
-  bin <- match.arg(bin)
+```{r, echo = FALSE}
+build_tag_timeseries_month <- function(games, tag_pattern, ref_date,
+                                       window_months = 60,
+                                       max_date = as.Date("2025-02-28")) {
 
-
-  # Max months available after launch until Feb 28, 2025 (included)
+  # months available after launch up to max_date (included)
   max_months_available <- as.numeric(difftime(max_date, ref_date, units = "days")) / (365.25 / 12)
-
-  # Effective post window (in bins)
-  effective_post_months <- min(window_months, floor(max_months_available))
-
-  # Convert to bin units (month or year)
-  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
-  t_max <- if (bin == "month")  effective_post_months else floor(effective_post_months / 12)
+  t_max <- min(window_months, floor(max_months_available))
+  t_min <- -window_months
 
   df_binned <- games %>%
-    filter(str_detect(tags, fixed(tag_pattern))) %>%
-    mutate(
+    dplyr::filter(stringr::str_detect(tags, stringr::fixed(tag_pattern))) %>%
+    dplyr::mutate(
       t_months = as.numeric(difftime(release_date, ref_date, units = "days")) / (365.25 / 12),
-      t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
+      t = floor(t_months)
     ) %>%
-    # Window in BIN space, with post capped by max_date
-    filter(t_bin >= t_min, t_bin <= t_max) %>%
-    count(t_bin, name = "freq")
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
 
-  full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
 
   full_bins %>%
-    left_join(df_binned, by = "t_bin") %>%
-    mutate(freq = tidyr::replace_na(freq, 0L)) %>%
-    arrange(t_bin) %>%
-    mutate(
-      post = as.integer(t_bin > 0),
-      t = t_bin
-    )
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
 }
+
 
 ```
 
 
-```{r}
-ts_slayTheSpire <- build_tag_timeseriesV3(
+```{r, echo = FALSE}
+ts_slayTheSpire <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike Deckbuilder",
   ref_date = ref_game_SlayTheSpire$release_date,
-  bin = "month",
   window_months = 84 # ±6 years
 )
 
@@ -591,7 +581,7 @@ summary(m_slayTheSpire)
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_slayTheSpire, t < 0)) +
@@ -608,58 +598,51 @@ ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
 ```
 
 
-```{r}
-build_global_timeseries <- function(games, ref_date,
-                                    bin = c("month", "year"),
-                                    window_months = 60,
-                                    max_date = as.Date("2025-02-28")) {
+```{r, echo = FALSE}
+build_global_timeseries_month <- function(games, ref_date,
+                                          window_months = 60,
+                                          max_date = as.Date("2025-02-28")) {
 
-  bin <- match.arg(bin)
   ref_date <- as.Date(ref_date)
   max_date <- as.Date(max_date)
 
-  # months available from ref_date up to max_date (included)
+  # months available after launch up to max_date (included)
   max_months_available <- as.numeric(difftime(max_date, ref_date, units = "days")) / (365.25 / 12)
-  effective_post_months <- min(window_months, floor(max_months_available))
-
-  # translate to bin limits
-  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
-  t_max <- if (bin == "month")  effective_post_months else floor(effective_post_months / 12)
+  t_max <- min(window_months, floor(max_months_available))
+  t_min <- -window_months
 
   df_binned <- games %>%
-    mutate(
+    dplyr::mutate(
       t_months = as.numeric(difftime(release_date, ref_date, units = "days")) / (365.25 / 12),
-      t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
+      t = floor(t_months)
     ) %>%
-    # filter in BIN space (prevents the "last bin always 0" artifact)
-    filter(t_bin >= t_min, t_bin <= t_max) %>%
-    count(t_bin, name = "freq")
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
 
-  full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
 
   full_bins %>%
-    left_join(df_binned, by = "t_bin") %>%
-    mutate(freq = tidyr::replace_na(freq, 0L)) %>%
-    arrange(t_bin) %>%
-    mutate(
-      post = as.integer(t_bin > 0),
-      t = t_bin
-    )
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
 }
+
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_SlayTheSpire$release_date,
-  bin = "month",
   window_months = 84
 )
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 m_tag <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
 m_global <- lm(freq ~ t + post + t:post, data = ts_global)
 
@@ -668,7 +651,7 @@ summary(m_global)
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 combined <- bind_rows(
   ts_slayTheSpire %>% mutate(type = "Roguelike Deckbuilder", series = "tag"),
   ts_global %>% mutate(type = "All games", series = "global")
@@ -696,7 +679,7 @@ ggplot(combined, aes(x = t, y = freq, color = type)) +
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 
 m_diff <- lm(freq ~ t * post * series, data = combined)
 summary(m_diff)
@@ -705,17 +688,16 @@ summary(m_diff)
 
 ## Game Study: The Binding Of Isaac (Roguelike)
 
-```{r}
+```{r, echo = FALSE}
 ref_game_BindingOfIsaac <- cleaned_steam %>% filter(appid == 113200) %>% slice(1)
 
 ref_game_BindingOfIsaac$name
 ref_game_BindingOfIsaac$release_date
 
-ts_BindingOfIsaac <- build_tag_timeseriesV3(
+ts_BindingOfIsaac <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaac$release_date,
-  bin = "month", 
   window_months = 120 # ±10 years
 )
 
@@ -725,16 +707,15 @@ ref_game_BindingOfIsaacRebirth$name
 ref_game_BindingOfIsaacRebirth$release_date
 
 
-ts_BindingOfIsaacRebirth <- build_tag_timeseriesV3(
+ts_BindingOfIsaacRebirth <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
-  bin = "month",
   window_months = 120 # ±10 years
 )
 ```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
   geom_smooth(data = subset(ts_BindingOfIsaac, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
@@ -755,12 +736,11 @@ ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaac$release_date,
-  bin = "month",
   window_months = 120
 )
 
@@ -791,7 +771,7 @@ ggplot(plot_df, aes(x = t, y = freq, color = type)) +
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
@@ -812,12 +792,11 @@ ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
-  bin = "month",
   window_months = 120
 )
 
