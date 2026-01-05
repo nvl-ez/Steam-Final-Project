@@ -1,11 +1,11 @@
 ---
 output:
-  pdf_document:
-    toc: false
-    number_sections: true
   html_document:
     toc: true
     toc_depth: 5
+  pdf_document:
+    toc: false
+    number_sections: true
 ---
 
 \pagenumbering{gobble}
@@ -530,6 +530,7 @@ ref_game_SlayTheSpire <- cleaned_steam %>% filter(appid == 646570) %>% slice(1)
 
 ref_game_SlayTheSpire$name
 ref_game_SlayTheSpire$release_date
+ref_game_SlayTheSpire$tags
 ```
 
 
@@ -578,8 +579,45 @@ build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
 
 ```
 
+```{r}
+trend_change_test <- function(m, H, M) {
+  b <- coef(m)
+  V <- vcov(m)
+
+  delta <- b["t:post"]
+  se_delta <- sqrt(V["t:post","t:post"])
+
+  effect <- H * delta
+  se_eff <- H * se_delta
+  ci <- effect + c(-1,1) * 1.96 * se_eff
+
+  list(
+    slope_change = delta,
+    effect_at_H = effect,
+    ci_95 = ci,
+    trend_changed =
+      abs(effect) > M &&
+      (ci[1] > 0 | ci[2] < 0)
+  )
+}
+```
+
 
 ```{r}
+# ts_slayTheSpire <- build_tag_timeseriesV3(
+#   games = cleaned_steam,
+#   tag_pattern = "Roguelike Deckbuilder",
+#   ref_date = ref_game_SlayTheSpire$release_date,
+#   bin = "month",              # months gives more detail
+#   exclude_window_months = 1,  # drop ±1 month around launch
+#   window_months = 84          # ±6 years
+# )
+# 
+# # Piecewise model (pre trend + post jump + slope change)
+# m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
+# summary(m_slayTheSpire)
+
+
 ts_slayTheSpire <- build_tag_timeseriesV3(
   games = cleaned_steam,
   tag_pattern = "Roguelike Deckbuilder",
@@ -592,6 +630,31 @@ ts_slayTheSpire <- build_tag_timeseriesV3(
 # Piecewise model (pre trend + post jump + slope change)
 m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
 summary(m_slayTheSpire)
+
+m <- m_slayTheSpire
+
+b <- coef(m)
+
+slope_pre  <- b["t"]
+slope_post <- b["t"] + b["t:post"]
+delta_slope <- b["t:post"]
+
+c(slope_pre = slope_pre, slope_post = slope_post, slope_change = delta_slope)
+
+# horizon: 20 time units after the datapoint
+H <- 6
+
+# minimum meaningful divergence (10% of pre-period SD)
+pre_sd <- sd(ts_slayTheSpire$freq[ts_slayTheSpire$post == 0], na.rm = TRUE)
+M <- 0.10 * pre_sd
+
+res <- trend_change_test(
+  m = m_slayTheSpire,
+  H = H,
+  M = M
+)
+
+res
 
 ```
 
@@ -752,6 +815,11 @@ ts_BindingOfIsaacRebirth <- build_tag_timeseriesV3(
   exclude_window_months = 1,  # drop ±1 month around launch
   window_months = 120         # ±6 years
 )
+```
+```{r}
+# Piecewise model (pre trend + post jump + slope change)
+m_BindingOfIsaacRebirth <- lm(freq ~ t + post + t:post, data = ts_BindingOfIsaacRebirth)
+summary(m_slayTheSpire)
 ```
 
 ```{r}

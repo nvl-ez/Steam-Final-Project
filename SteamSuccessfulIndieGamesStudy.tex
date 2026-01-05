@@ -1,0 +1,1684 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+
+\pagenumbering{gobble}
+
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+
+\includegraphics[width=0.35\textwidth]{img/uib.png}\par
+\vspace{1.5cm}
+
+{\LARGE\bfseries 21746 - Data Mining\par}
+\vspace{0.3cm}
+{\LARGE\bfseries Final Project\par}
+\vspace{0.8cm}
+{\Large Steam Successful Indie Games Study\par}
+
+\vspace{1.8cm}
+
+{\large
+Iván Pulgar Rodas\\
+Jordi Sevilla Marí\\
+Nahuel Vazquez\\
+Yelyzaveta Denysova\\
+Xiaozhe Cheng\\
+Gabriel Oliver Artigues\\
+Arturo Mus Mejías\par}
+
+\vfill
+{\large 2026-01-10\par}
+\end{titlepage}
+
+\clearpage
+\pagenumbering{gobble}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{Introduction}\label{introduction}
+
+\subsection{Explanation of the
+Attributes}\label{explanation-of-the-attributes}
+
+The dataset we will be working with contains a total number of 94948
+observations and 47 columns or variables. The columns that will be used
+are described bellow:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{appid}}: Unique idetnifier of the game on Steam.
+  {[}num{]}
+\item
+  \textbf{\texttt{name}}: Name of the game. {[}text{]}
+\item
+  \textbf{`released\_date``}: Represents the date where the game was
+  released. {[}time{]}
+\item
+  \textbf{`required\_age``}: Corresponds to the minimum age required to
+  play the game. {[}num{]}
+\item
+  \textbf{\texttt{price}}: How much the game costs. If its 0 it means
+  that the game is Free to Play. {[}num{]}
+\item
+  \textbf{\texttt{dlc\_count}}: Ammount of DLCs (Downloadable Contents)
+  the game has. {[}num{]}
+\item
+  \textbf{\texttt{suppport\_url}}: URL to the support page of the game.
+  {[}text{]}
+\item
+  \textbf{\texttt{windows}}: Determines if the game runs in windows.
+  {[}categorical{]}
+\item
+  \textbf{\texttt{mac}}: Determines if the game runs in mac.
+  {[}categorical{]}
+\item
+  \textbf{\texttt{linux}}: Determines if the game runs in linux.
+  {[}categorical{]}
+\item
+  \textbf{\texttt{metacritic\_score}}: Metacritic score based on
+  critcical reviews (reviews from professionalss). By performing an
+  investigation we think that an score of 0 means that when the scraping
+  of the data was done there where no reviews for that game yet.
+  {[}num{]}
+\item
+  \textbf{\texttt{achievements}}: Number of achievements the game has.
+  {[}num{]}
+\item
+  \textbf{`recommendations``}: Ammount of user recommendations.
+  {[}num{]}
+\item
+  \textbf{\texttt{supported\_languages}}: List of languages that the
+  game supports.{[}\textbf{NO SÉ QUE CATEGORÍA DARLE}{]}
+\item
+  \textbf{\texttt{packages}}: Avaliable packages for the game. It
+  contains the name and a description of the package and the names,
+  descriptions and subprices of the subpackages. {[}\textbf{LO MISMO QUE
+  ARRIBA}{]}
+\item
+  \textbf{\texttt{Developers}}: List of developers associated with the
+  game. {[}\textbf{LO MISMO QUE ARRIBA}{]}
+\item
+  \textbf{\texttt{publishers}}: List of publishers associated with the
+  game. {[}\textbf{LO MISMO QUE ARRIBA}{]}
+\item
+  \textbf{\texttt{categories}}: List of categories that the game has.
+  {[}\textbf{LO MISMO QUE ARRIBA}{]}
+\item
+  \textbf{\texttt{genres}}: List of genres that the game belongs to.
+  {[}\textbf{LO MISMO QUE ARRIBA}{]}
+\item
+  \textbf{\texttt{positive}}: Ammount of positive votes the game has.
+  {[}num{]}
+\item
+  \textbf{\texttt{negative}}: Ammount of negative votes the game has.
+  {[}num{]}
+\item
+  \textbf{\texttt{estimated\_owners}}: Estimated owners of the game.
+  {[}text{]}
+\item
+  \textbf{\texttt{average\_playtime\_forever}}: Average playtime since
+  March 2009 measured in minutes. {[}num{]}
+\item
+  \textbf{\texttt{average\_playtime\_2weeks}}: Average playtime in the
+  last two weeks measured in minutes. {[}num{]}
+\item
+  \textbf{\texttt{median\_playtime\_forever}}: Median playtime since
+  March 2009 measured in minutes. {[}num{]}
+\item
+  \textbf{\texttt{median\_playtime\_2weeks}}: Median playtime in the
+  last two weeks measured in minutes.{[}num{]}
+\item
+  \textbf{\texttt{peak\_ccu}}: Number of current users playing the day
+  before the data was scrapped. {[}num{]}
+\item
+  \textbf{\texttt{tags}}: List of tags the game has with its name and
+  its key. {[}\textbf{NO SE QUE CATEGORIA DARLE}{]}
+\item
+  \textbf{\texttt{pct\_pos\_total}}: Percentage of all reviews that are
+  positive. {[}num{]}
+\item
+  \textbf{\texttt{num\_reviews\_total}}: Nummber of the total reviews
+  the game has. {[}num{]}
+\end{itemize}
+
+\subsection{Objectives}\label{objectives}
+
+\textbf{TODO: ADD OBJECTIVES OF STUDY}
+
+\section{Procesing de data}\label{procesing-de-data}
+
+General look of the dataset
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(steam)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      appid             name           release_date        required_age    
+##  Min.   :     20   Length:94948       Length:94948       Min.   :-1.0000  
+##  1st Qu.: 887338   Class :character   Class :character   1st Qu.: 0.0000  
+##  Median :1591145   Mode  :character   Mode  :character   Median : 0.0000  
+##  Mean   :1707531                                         Mean   : 0.1783  
+##  3rd Qu.:2491703                                         3rd Qu.: 0.0000  
+##  Max.   :3570420                                         Max.   :21.0000  
+##                                                                           
+##      price            dlc_count         detailed_description about_the_game    
+##  Min.   :   0.000   Min.   :   0.0000   Length:94948         Length:94948      
+##  1st Qu.:   0.990   1st Qu.:   0.0000   Class :character     Class :character  
+##  Median :   3.990   Median :   0.0000   Mode  :character     Mode  :character  
+##  Mean   :   6.911   Mean   :   0.5632                                          
+##  3rd Qu.:   9.990   3rd Qu.:   0.0000                                          
+##  Max.   : 999.980   Max.   :3427.0000                                          
+##                                                                                
+##  short_description    reviews          header_image         website         
+##  Length:94948       Length:94948       Length:94948       Length:94948      
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##  support_url        support_email        windows              mac           
+##  Length:94948       Length:94948       Length:94948       Length:94948      
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##     linux           metacritic_score metacritic_url      achievements    
+##  Length:94948       Min.   : 0.000   Length:94948       Min.   :   0.00  
+##  Class :character   1st Qu.: 0.000   Class :character   1st Qu.:   0.00  
+##  Mode  :character   Median : 0.000   Mode  :character   Median :   2.00  
+##                     Mean   : 2.764                      Mean   :  19.54  
+##                     3rd Qu.: 0.000                      3rd Qu.:  19.00  
+##                     Max.   :97.000                      Max.   :9821.00  
+##                                                                          
+##  recommendations      notes           supported_languages full_audio_languages
+##  Min.   :      0   Length:94948       Length:94948        Length:94948        
+##  1st Qu.:      0   Class :character   Class :character    Class :character    
+##  Median :      0   Mode  :character   Mode  :character    Mode  :character    
+##  Mean   :   1022                                                              
+##  3rd Qu.:      0                                                              
+##  Max.   :4401572                                                              
+##                                                                               
+##    packages          developers         publishers         categories       
+##  Length:94948       Length:94948       Length:94948       Length:94948      
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##     genres          screenshots           movies            user_score       
+##  Length:94948       Length:94948       Length:94948       Min.   :  0.00000  
+##  Class :character   Class :character   Class :character   1st Qu.:  0.00000  
+##  Mode  :character   Mode  :character   Mode  :character   Median :  0.00000  
+##                                                           Mean   :  0.03097  
+##                                                           3rd Qu.:  0.00000  
+##                                                           Max.   :100.00000  
+##                                                                              
+##    score_rank        positive          negative         estimated_owners  
+##  Min.   : 98.00   Min.   :      0   Min.   :      0.0   Length:94948      
+##  1st Qu.: 99.00   1st Qu.:      0   1st Qu.:      0.0   Class :character  
+##  Median : 99.00   Median :      8   Median :      2.0   Mode  :character  
+##  Mean   : 99.13   Mean   :   1218   Mean   :    202.1                     
+##  3rd Qu.:100.00   3rd Qu.:     51   3rd Qu.:     15.0                     
+##  Max.   :100.00   Max.   :7480813   Max.   :1135108.0                     
+##  NA's   :94909                                                            
+##  average_playtime_forever average_playtime_2weeks median_playtime_forever
+##  Min.   :      0.0        Min.   :    0.000       Min.   :      0.0      
+##  1st Qu.:      0.0        1st Qu.:    0.000       1st Qu.:      0.0      
+##  Median :      0.0        Median :    0.000       Median :      0.0      
+##  Mean   :    108.6        Mean   :    4.757       Mean   :    108.4      
+##  3rd Qu.:      0.0        3rd Qu.:    0.000       3rd Qu.:      0.0      
+##  Max.   :1462997.0        Max.   :18568.000       Max.   :1462997.0      
+##                                                                          
+##  median_playtime_2weeks    discount          peak_ccu        
+##  Min.   :    0.000      Min.   :  0.000   Min.   :0.000e+00  
+##  1st Qu.:    0.000      1st Qu.:  0.000   1st Qu.:0.000e+00  
+##  Median :    0.000      Median :  0.000   Median :0.000e+00  
+##  Mean   :    5.018      Mean   :  4.307   Mean   :9.285e+01  
+##  3rd Qu.:    0.000      3rd Qu.:  0.000   3rd Qu.:0.000e+00  
+##  Max.   :18568.000      Max.   :100.000   Max.   :1.212e+06  
+##                                                              
+##      tags           pct_pos_total    num_reviews_total pct_pos_recent   
+##  Length:94948       Min.   : -1.00   Min.   :     -1   Min.   : -1.000  
+##  Class :character   1st Qu.: -1.00   1st Qu.:     -1   1st Qu.: -1.000  
+##  Mode  :character   Median : 58.00   Median :     15   Median : -1.000  
+##                     Mean   : 44.63   Mean   :   1448   Mean   :  5.328  
+##                     3rd Qu.: 84.00   3rd Qu.:     80   3rd Qu.: -1.000  
+##                     Max.   :100.00   Max.   :8632939   Max.   :100.000  
+##                                                                         
+##  num_reviews_recent
+##  Min.   :   -1.00  
+##  1st Qu.:   -1.00  
+##  Median :   -1.00  
+##  Mean   :   16.88  
+##  3rd Qu.:   -1.00  
+##  Max.   :96473.00  
+## 
+\end{verbatim}
+
+Explanation of first looks of it, bad formatting, NA's, negative
+values\ldots{}
+
+\subsection{Handling of NA values}\label{handling-of-na-values}
+
+The attributes with missing values are:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{na\_counts }\OtherTok{\textless{}{-}}\NormalTok{ steam }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{summarise\_all}\NormalTok{(}\SpecialCharTok{\textasciitilde{}} \FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(.)))}
+
+\FunctionTok{print}\NormalTok{(na\_counts)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   appid name release_date required_age price dlc_count detailed_description
+## 1     0    0            0            0     0         0                    0
+##   about_the_game short_description reviews header_image website support_url
+## 1              0                 0       0            0       0           0
+##   support_email windows mac linux metacritic_score metacritic_url achievements
+## 1             0       0   0     0                0              0            0
+##   recommendations notes supported_languages full_audio_languages packages
+## 1               0     0                   0                    0        0
+##   developers publishers categories genres screenshots movies user_score
+## 1          0          0          0      0           0      0          0
+##   score_rank positive negative estimated_owners average_playtime_forever
+## 1      94909        0        0                0                        0
+##   average_playtime_2weeks median_playtime_forever median_playtime_2weeks
+## 1                       0                       0                      0
+##   discount peak_ccu tags pct_pos_total num_reviews_total pct_pos_recent
+## 1        0        0    0             0                 0              0
+##   num_reviews_recent
+## 1                  0
+\end{verbatim}
+
+The columns with missing values are as follows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{add\_range\_minmax }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(df, column, min\_column, max\_column) \{}
+\NormalTok{  column\_quo }\OtherTok{\textless{}{-}} \FunctionTok{enquo}\NormalTok{(column)}
+
+\NormalTok{  df }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \StringTok{"\{min\_column\}"} \SpecialCharTok{:=} \FunctionTok{as.integer}\NormalTok{(}\FunctionTok{str\_extract}\NormalTok{(}\SpecialCharTok{!!}\NormalTok{column\_quo, }\StringTok{"\^{}}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{s*}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{d+"}\NormalTok{)),}
+      \StringTok{"\{max\_column\}"} \SpecialCharTok{:=} \FunctionTok{as.integer}\NormalTok{(}\FunctionTok{str\_extract}\NormalTok{(}\SpecialCharTok{!!}\NormalTok{column\_quo, }\StringTok{"}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{d+}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{s*$"}\NormalTok{))}
+\NormalTok{    )}
+\NormalTok{\}}
+
+\NormalTok{cleaned\_steam }\OtherTok{\textless{}{-}}\NormalTok{ cleaned\_steam }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{add\_range\_minmax}\NormalTok{(}
+\NormalTok{    estimated\_owners,}
+    \StringTok{"estimated\_owners\_min"}\NormalTok{,}
+    \StringTok{"estimated\_owners\_max"}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{estimated\_owners)}
+\end{Highlighting}
+\end{Shaded}
+
+LOs juegos con número de reseñas = -1 creemos que son porque el
+scrappear ha fallado durante su ejecución. Si vamos a trabajar con las
+reseñas podríamos decir en la presentación que vamos a probar de volver
+a intentar scrappear la información
+
+\begin{verbatim}
+## tibble [88,982 x 30] (S3: tbl_df/tbl/data.frame)
+##  $ appid                   : int [1:88982] 2556940 449940 1287250 866510 870990 439260 388390 2243560 1908870 3165610 ...
+##  $ name                    : chr [1:88982] "! Shakabula *" "! That Bastard Is Trying To Steal Our Gold !" "! Wild Russia !" "!AnyWay!" ...
+##  $ release_date            : Date[1:88982], format: "2023-10-13" "2016-03-03" ...
+##  $ required_age            : int [1:88982] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ price                   : num [1:88982] 14.99 2.99 19.99 1.99 0.99 ...
+##  $ dlc_count               : int [1:88982] 0 0 0 39 0 0 0 1 3 0 ...
+##  $ windows                 : chr [1:88982] "True" "True" "True" "True" ...
+##  $ mac                     : chr [1:88982] "False" "False" "False" "False" ...
+##  $ linux                   : chr [1:88982] "False" "True" "False" "False" ...
+##  $ metacritic_score        : int [1:88982] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ achievements            : int [1:88982] 0 0 9 4997 2021 0 0 19 13 5 ...
+##  $ recommendations         : int [1:88982] 0 0 0 495 0 0 0 108 0 0 ...
+##  $ supported_languages     : chr [1:88982] "['English']" "['English']" "['English', 'Simplified Chinese', 'Russian']" "['English', 'Russian', 'French', 'Italian', 'German', 'Polish', 'Ukrainian', 'Swedish', 'Simplified Chinese', '"| __truncated__ ...
+##  $ packages                : chr [1:88982] "[{'title': 'Buy ! Shakabula *', 'description': '', 'subs': [{'text': '! Shakabula * - $14.99', 'description': '"| __truncated__ "[{'title': 'Buy ! That Bastard Is Trying To Steal Our Gold !', 'description': '', 'subs': [{'text': '! That Bas"| __truncated__ "[{'title': 'Buy ! Wild Russia !', 'description': '', 'subs': [{'text': 'Wild Russia - $19.99', 'description': '"| __truncated__ "[{'title': 'Buy !AnyWay!', 'description': '', 'subs': [{'text': '!AnyWay! - $1.99', 'description': '', 'price':"| __truncated__ ...
+##  $ developers              : chr [1:88982] "['Skermunkel']" "['WTFOMGames']" "['Andreev Worlds']" "['EYEFRONT']" ...
+##  $ publishers              : chr [1:88982] "['Skermunkel']" "['WTFOMGames']" "['Andreev Worlds']" "['EYEFRONT']" ...
+##  $ categories              : chr [1:88982] "['Single-player', 'Full controller support', 'Steam Cloud', 'Family Sharing']" "['Single-player', 'Steam Trading Cards', 'Partial Controller Support', 'Family Sharing']" "['Single-player', 'Steam Achievements', 'Partial Controller Support', 'Family Sharing']" "['Single-player', 'Multi-player', 'Steam Achievements', 'Full controller support', 'Steam Trading Cards', 'Stea"| __truncated__ ...
+##  $ genres                  : chr [1:88982] "['Action', 'Indie', 'RPG', 'Early Access']" "['Action', 'Adventure', 'Casual', 'Indie']" "['Action', 'Adventure', 'Casual']" "['Adventure', 'Casual', 'Indie']" ...
+##  $ positive                : int [1:88982] 0 57 45 410 25 83 37 126 0 0 ...
+##  $ negative                : int [1:88982] 4 78 34 180 32 18 102 10 0 0 ...
+##  $ average_playtime_forever: int [1:88982] 0 312 0 360 0 0 244 0 0 0 ...
+##  $ average_playtime_2weeks : int [1:88982] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ median_playtime_forever : int [1:88982] 0 391 0 378 0 0 244 0 0 0 ...
+##  $ median_playtime_2weeks  : int [1:88982] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ peak_ccu                : int [1:88982] 0 0 0 6 0 0 0 0 0 0 ...
+##  $ tags                    : chr [1:88982] "{'Early Access': 213, 'Action': 193, 'RPG': 187, 'JRPG': 184, 'Shooter': 181, 'Bullet Hell': 178, 'Metroidvania"| __truncated__ "{'Puzzle-Platformer': 237, 'Dark Humor': 233, 'Dungeon Crawler': 228, 'Mining': 225, 'Memes': 223, 'Destruction"| __truncated__ "{'Adventure': 57, 'Action': 56, 'Casual': 56, 'Horror': 13, 'Post-apocalyptic': 13, 'Atmospheric': 12}" "{'Side Scroller': 179, 'Precision Platformer': 173, '2D Platformer': 170, 'Casual': 166, 'Sandbox': 163, 'Platf"| __truncated__ ...
+##  $ pct_pos_total           : int [1:88982] -1 55 61 71 55 82 55 91 95 66 ...
+##  $ num_reviews_total       : int [1:88982] -1 68 62 495 18 101 20 108 281 12 ...
+##  $ estimated_owners_min    : int [1:88982] 0 50000 0 100000 0 0 100000 20000 0 0 ...
+##  $ estimated_owners_max    : int [1:88982] 20000 100000 20000 200000 20000 20000 200000 50000 0 0 ...
+\end{verbatim}
+
+\begin{verbatim}
+##      appid             name            release_date         required_age    
+##  Min.   :     20   Length:88982       Min.   :1997-06-30   Min.   :-1.0000  
+##  1st Qu.: 852783   Class :character   1st Qu.:2018-12-05   1st Qu.: 0.0000  
+##  Median :1522535   Mode  :character   Median :2021-10-29   Median : 0.0000  
+##  Mean   :1655079                      Mean   :2021-04-04   Mean   : 0.1826  
+##  3rd Qu.:2429338                      3rd Qu.:2023-12-14   3rd Qu.: 0.0000  
+##  Max.   :3542350                      Max.   :2025-03-10   Max.   :21.0000  
+##      price            dlc_count           windows              mac           
+##  Min.   :   0.000   Min.   :   0.0000   Length:88982       Length:88982      
+##  1st Qu.:   0.990   1st Qu.:   0.0000   Class :character   Class :character  
+##  Median :   4.990   Median :   0.0000   Mode  :character   Mode  :character  
+##  Mean   :   7.349   Mean   :   0.5957                                        
+##  3rd Qu.:   9.990   3rd Qu.:   0.0000                                        
+##  Max.   : 999.980   Max.   :3427.0000                                        
+##     linux           metacritic_score  achievements     recommendations  
+##  Length:88982       Min.   : 0.00    Min.   :   0.00   Min.   :      0  
+##  Class :character   1st Qu.: 0.00    1st Qu.:   0.00   1st Qu.:      0  
+##  Mode  :character   Median : 0.00    Median :   5.00   Median :      0  
+##                     Mean   : 2.91    Mean   :  20.67   Mean   :   1013  
+##                     3rd Qu.: 0.00    3rd Qu.:  20.00   3rd Qu.:      0  
+##                     Max.   :97.00    Max.   :9821.00   Max.   :4401572  
+##  supported_languages   packages          developers         publishers       
+##  Length:88982        Length:88982       Length:88982       Length:88982      
+##  Class :character    Class :character   Class :character   Class :character  
+##  Mode  :character    Mode  :character   Mode  :character   Mode  :character  
+##                                                                              
+##                                                                              
+##                                                                              
+##   categories           genres             positive          negative        
+##  Length:88982       Length:88982       Min.   :      0   Min.   :      0.0  
+##  Class :character   Class :character   1st Qu.:      1   1st Qu.:      0.0  
+##  Mode  :character   Mode  :character   Median :     10   Median :      2.0  
+##                                        Mean   :   1267   Mean   :    208.3  
+##                                        3rd Qu.:     59   3rd Qu.:     17.0  
+##                                        Max.   :7480813   Max.   :1135108.0  
+##  average_playtime_forever average_playtime_2weeks median_playtime_forever
+##  Min.   :      0.0        Min.   :    0.000       Min.   :      0.0      
+##  1st Qu.:      0.0        1st Qu.:    0.000       1st Qu.:      0.0      
+##  Median :      0.0        Median :    0.000       Median :      0.0      
+##  Mean   :    115.6        Mean   :    4.998       Mean   :    115.5      
+##  3rd Qu.:      0.0        3rd Qu.:    0.000       3rd Qu.:      0.0      
+##  Max.   :1462997.0        Max.   :18568.000       Max.   :1462997.0      
+##  median_playtime_2weeks    peak_ccu             tags           pct_pos_total   
+##  Min.   :    0.000      Min.   :0.000e+00   Length:88982       Min.   : -1.00  
+##  1st Qu.:    0.000      1st Qu.:0.000e+00   Class :character   1st Qu.: -1.00  
+##  Median :    0.000      Median :0.000e+00   Mode  :character   Median : 60.00  
+##  Mean   :    5.277      Mean   :9.778e+01                      Mean   : 45.39  
+##  3rd Qu.:    0.000      3rd Qu.:0.000e+00                      3rd Qu.: 84.00  
+##  Max.   :18568.000      Max.   :1.212e+06                      Max.   :100.00  
+##  num_reviews_total estimated_owners_min estimated_owners_max
+##  Min.   :     -1   Min.   :        0    Min.   :        0   
+##  1st Qu.:     -1   1st Qu.:        0    1st Qu.:    20000   
+##  Median :     15   Median :        0    Median :    20000   
+##  Mean   :   1320   Mean   :    59038    Mean   :   143056   
+##  3rd Qu.:     81   3rd Qu.:        0    3rd Qu.:    20000   
+##  Max.   :8632939   Max.   :200000000    Max.   :500000000
+\end{verbatim}
+
+\section{Requeriments for Successful Indie
+Games}\label{requeriments-for-successful-indie-games}
+
+Create helper function for extracting unique elements from entries with
+a list of values. All lists follow the same pattern:
+\texttt{{[}\textquotesingle{}el1\textquotesingle{},\ \textquotesingle{}el2\textquotesingle{},...{]}}
+being \texttt{{[}{]}} for empty lists.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Funcion helper }
+\NormalTok{get\_unique\_list\_values }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  x }\OtherTok{\textless{}{-}}\NormalTok{ x[x }\SpecialCharTok{!=} \StringTok{"[]"}\NormalTok{]}
+\NormalTok{  x }\OtherTok{\textless{}{-}} \FunctionTok{gsub}\NormalTok{(}\StringTok{"\^{}}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{[|}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{]$"}\NormalTok{, }\StringTok{""}\NormalTok{, x) }\CommentTok{\# quitar [ y ]}
+\NormalTok{  x }\OtherTok{\textless{}{-}} \FunctionTok{gsub}\NormalTok{(}\StringTok{"[\textquotesingle{}}\SpecialCharTok{\textbackslash{}"}\StringTok{]"}\NormalTok{, }\StringTok{""}\NormalTok{, x)}\CommentTok{\# quitar \textquotesingle{} y "}
+  
+\NormalTok{  elements }\OtherTok{\textless{}{-}} \FunctionTok{strsplit}\NormalTok{(x, }\StringTok{","}\NormalTok{) }\CommentTok{\# dividr por comas}
+
+\NormalTok{  vals }\OtherTok{\textless{}{-}} \FunctionTok{trimws}\NormalTok{(}\FunctionTok{unlist}\NormalTok{(elements, }\AttributeTok{use.names =} \ConstantTok{FALSE}\NormalTok{)) }\CommentTok{\# aplanar y trim}
+\NormalTok{  vals }\OtherTok{\textless{}{-}}\NormalTok{ vals[vals }\SpecialCharTok{!=} \StringTok{""}\NormalTok{]}
+  
+  \FunctionTok{sort}\NormalTok{(}\FunctionTok{unique}\NormalTok{(vals))}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Create helper function for extracting unique tags. These are formatted
+differently and follow dictionary-like pattern where each element is a
+key-value pair being \texttt{{[}{]}} for empty entries.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{get\_unique\_dict\_keys }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  x }\OtherTok{\textless{}{-}}\NormalTok{ x[x }\SpecialCharTok{!=} \StringTok{"[]"}\NormalTok{]}
+  
+\NormalTok{  keys\_list }\OtherTok{\textless{}{-}} \FunctionTok{str\_extract\_all}\NormalTok{(x, }\StringTok{"(?\textless{}=\textquotesingle{})[\^{}\textquotesingle{}]+(?=\textquotesingle{}}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{s*:)"}\NormalTok{)}
+  
+\NormalTok{  keys }\OtherTok{\textless{}{-}} \FunctionTok{trimws}\NormalTok{(}\FunctionTok{unlist}\NormalTok{(keys\_list, }\AttributeTok{use.names =} \ConstantTok{FALSE}\NormalTok{))}
+\NormalTok{  keys }\OtherTok{\textless{}{-}}\NormalTok{ keys[keys }\SpecialCharTok{!=} \StringTok{""}\NormalTok{]}
+  \FunctionTok{sort}\NormalTok{(}\FunctionTok{unique}\NormalTok{(keys))}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Obtain Unique values for different
+columns}\label{obtain-unique-values-for-different-columns}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{steam\_categories }\OtherTok{\textless{}{-}} \FunctionTok{get\_unique\_list\_values}\NormalTok{(cleaned\_steam}\SpecialCharTok{$}\NormalTok{categories)}
+\NormalTok{steam\_categories}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  [1] "Captions available"         "Co-op"                     
+##  [3] "Commentary available"       "Cross-Platform Multiplayer"
+##  [5] "Family Sharing"             "Full controller support"   
+##  [7] "HDR available"              "In-App Purchases"          
+##  [9] "Includes level editor"      "Includes Source SDK"       
+## [11] "LAN Co-op"                  "LAN PvP"                   
+## [13] "MMO"                        "Multi-player"              
+## [15] "Online Co-op"               "Online PvP"                
+## [17] "Partial Controller Support" "PvP"                       
+## [19] "Remote Play on Phone"       "Remote Play on Tablet"     
+## [21] "Remote Play on TV"          "Remote Play Together"      
+## [23] "Shared/Split Screen"        "Shared/Split Screen Co-op" 
+## [25] "Shared/Split Screen PvP"    "Single-player"             
+## [27] "Stats"                      "Steam Achievements"        
+## [29] "Steam Cloud"                "Steam Leaderboards"        
+## [31] "Steam Timeline"             "Steam Trading Cards"       
+## [33] "Steam Turn Notifications"   "Steam Workshop"            
+## [35] "SteamVR Collectibles"       "Tracked Controller Support"
+## [37] "Valve Anti-Cheat enabled"   "VR Only"                   
+## [39] "VR Support"                 "VR Supported"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{steam\_genres }\OtherTok{\textless{}{-}} \FunctionTok{get\_unique\_list\_values}\NormalTok{(cleaned\_steam}\SpecialCharTok{$}\NormalTok{genres)}
+\NormalTok{steam\_genres}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  [1] "360 Video"             "Accounting"            "Action"               
+##  [4] "Adventure"             "Animation & Modeling"  "Audio Production"     
+##  [7] "Casual"                "Design & Illustration" "Documentary"          
+## [10] "Early Access"          "Education"             "Episodic"             
+## [13] "Free To Play"          "Game Development"      "Gore"                 
+## [16] "Indie"                 "Massively Multiplayer" "Movie"                
+## [19] "Nudity"                "Photo Editing"         "Racing"               
+## [22] "RPG"                   "Sexual Content"        "Short"                
+## [25] "Simulation"            "Software Training"     "Sports"               
+## [28] "Strategy"              "Tutorial"              "Utilities"            
+## [31] "Video Production"      "Violent"               "Web Publishing"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{steam\_tags }\OtherTok{\textless{}{-}} \FunctionTok{get\_unique\_dict\_keys}\NormalTok{(cleaned\_steam}\SpecialCharTok{$}\NormalTok{tags)}
+\NormalTok{steam\_tags}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   [1] "1980s"                             "2.5D"                             
+##   [3] "2D"                                "2D Fighter"                       
+##   [5] "2D Platformer"                     "360 Video"                        
+##   [7] "3D"                                "3D Fighter"                       
+##   [9] "3D Platformer"                     "3D Vision"                        
+##  [11] "4 Player Local"                    "4X"                               
+##  [13] "6DOF"                              "8-bit Music"                      
+##  [15] "Abstract"                          "Action"                           
+##  [17] "Action-Adventure"                  "Action Roguelike"                 
+##  [19] "Action RPG"                        "Action RTS"                       
+##  [21] "Addictive"                         "Adventure"                        
+##  [23] "Agriculture"                       "Aliens"                           
+##  [25] "Alternate History"                 "Ambient"                          
+##  [27] "America"                           "Animation & Modeling"             
+##  [29] "Anime"                             "Arcade"                           
+##  [31] "Archery"                           "Arena Shooter"                    
+##  [33] "Artificial Intelligence"           "Assassin"                         
+##  [35] "Asymmetric VR"                     "Asynchronous Multiplayer"         
+##  [37] "Atmospheric"                       "ATV"                              
+##  [39] "Audio Production"                  "Auto Battler"                     
+##  [41] "Automation"                        "Automobile Sim"                   
+##  [43] "Base-Building"                     "Baseball"                         
+##  [45] "Based On A Novel"                  "Basketball"                       
+##  [47] "Battle Royale"                     "Beautiful"                        
+##  [49] "Benchmark"                         "Bikes"                            
+##  [51] "Birds"                             "Blood"                            
+##  [53] "BMX"                               "Board Game"                       
+##  [55] "Boomer Shooter"                    "Boss Rush"                        
+##  [57] "Bowling"                           "Boxing"                           
+##  [59] "Building"                          "Bullet Hell"                      
+##  [61] "Bullet Time"                       "Capitalism"                       
+##  [63] "Card Battler"                      "Card Game"                        
+##  [65] "Cartoon"                           "Cartoony"                         
+##  [67] "Casual"                            "Cats"                             
+##  [69] "Character Action Game"             "Character Customization"          
+##  [71] "Chess"                             "Choices Matter"                   
+##  [73] "Choose Your Own Adventure"         "Cinematic"                        
+##  [75] "City Builder"                      "Class-Based"                      
+##  [77] "Classic"                           "Clicker"                          
+##  [79] "Co-op"                             "Co-op Campaign"                   
+##  [81] "Coding"                            "Cold War"                         
+##  [83] "Collectathon"                      "Colony Sim"                       
+##  [85] "Colorful"                          "Combat"                           
+##  [87] "Combat Racing"                     "Comedy"                           
+##  [89] "Comic Book"                        "Competitive"                      
+##  [91] "Conspiracy"                        "Controller"                       
+##  [93] "Conversation"                      "Cooking"                          
+##  [95] "Cozy"                              "Crafting"                         
+##  [97] "Creature Collector"                "Cricket"                          
+##  [99] "Crime"                             "Crowdfunded"                      
+## [101] "CRPG"                              "Cult Classic"                     
+## [103] "Cute"                              "Cyberpunk"                        
+## [105] "Cycling"                           "Dark"                             
+## [107] "Dark Comedy"                       "Dark Fantasy"                     
+## [109] "Dark Humor"                        "Dating Sim"                       
+## [111] "Deckbuilding"                      "Demons"                           
+## [113] "Design & Illustration"             "Destruction"                      
+## [115] "Detective"                         "Dice"                             
+## [117] "Difficult"                         "Dinosaurs"                        
+## [119] "Diplomacy"                         "Documentary"                      
+## [121] "Dog"                               "Dragons"                          
+## [123] "Drama"                             "Driving"                          
+## [125] "Dungeon Crawler"                   "Dungeons & Dragons"               
+## [127] "Dwarf"                             "Dynamic Narration"                
+## [129] "Dystopian"                         "e-sports"                         
+## [131] "Early Access"                      "Economy"                          
+## [133] "Education"                         "Electronic"                       
+## [135] "Electronic Music"                  "Elf"                              
+## [137] "Emotional"                         "Epic"                             
+## [139] "Episodic"                          "Escape Room"                      
+## [141] "Experience"                        "Experimental"                     
+## [143] "Exploration"                       "Extraction Shooter"               
+## [145] "Faith"                             "Family Friendly"                  
+## [147] "Fantasy"                           "Farming"                          
+## [149] "Farming Sim"                       "Fast-Paced"                       
+## [151] "Feature Film"                      "Female Protagonist"               
+## [153] "Fighting"                          "First-Person"                     
+## [155] "Fishing"                           "Flight"                           
+## [157] "FMV"                               "Football"                         
+## [159] "Football (American)"               "Football (Soccer)"                
+## [161] "Foreign"                           "Fox"                              
+## [163] "FPS"                               "Free to Play"                     
+## [165] "Funny"                             "Futuristic"                       
+## [167] "Gambling"                          "Game Development"                 
+## [169] "GameMaker"                         "Games Workshop"                   
+## [171] "Gaming"                            "God Game"                         
+## [173] "Golf"                              "Gore"                             
+## [175] "Gothic"                            "Grand Strategy"                   
+## [177] "Great Soundtrack"                  "Grid-Based Movement"              
+## [179] "Gun Customization"                 "Hack and Slash"                   
+## [181] "Hacking"                           "Hand-drawn"                       
+## [183] "Hardware"                          "Heist"                            
+## [185] "Hentai"                            "Hero Shooter"                     
+## [187] "Hex Grid"                          "Hidden Object"                    
+## [189] "Historical"                        "Hobby Sim"                        
+## [191] "Hockey"                            "Horror"                           
+## [193] "Horses"                            "Hunting"                          
+## [195] "Idler"                             "Illuminati"                       
+## [197] "Immersive"                         "Immersive Sim"                    
+## [199] "Indie"                             "Instrumental Music"               
+## [201] "Intentionally Awkward Controls"    "Interactive Fiction"              
+## [203] "Inventory Management"              "Investigation"                    
+## [205] "Isometric"                         "Jet"                              
+## [207] "Job Simulator"                     "JRPG"                             
+## [209] "Jump Scare"                        "Kickstarter"                      
+## [211] "LEGO"                              "Lemmings"                         
+## [213] "Level Editor"                      "LGBTQ+"                           
+## [215] "Life Sim"                          "Linear"                           
+## [217] "Local Co-Op"                       "Local Multiplayer"                
+## [219] "Logic"                             "Loot"                             
+## [221] "Looter Shooter"                    "Lore-Rich"                        
+## [223] "Lovecraftian"                      "Magic"                            
+## [225] "Mahjong"                           "Management"                       
+## [227] "Mars"                              "Martial Arts"                     
+## [229] "Massively Multiplayer"             "Masterpiece"                      
+## [231] "Match 3"                           "Mature"                           
+## [233] "Mechs"                             "Medical Sim"                      
+## [235] "Medieval"                          "Memes"                            
+## [237] "Metroidvania"                      "Military"                         
+## [239] "Mini Golf"                         "Minigames"                        
+## [241] "Minimalist"                        "Mining"                           
+## [243] "MMORPG"                            "MOBA"                             
+## [245] "Mod"                               "Moddable"                         
+## [247] "Modern"                            "Motocross"                        
+## [249] "Motorbike"                         "Mouse only"                       
+## [251] "Movie"                             "Multiplayer"                      
+## [253] "Multiple Endings"                  "Music"                            
+## [255] "Music-Based Procedural Generation" "Musou"                            
+## [257] "Mystery"                           "Mystery Dungeon"                  
+## [259] "Mythology"                         "Narration"                        
+## [261] "Narrative"                         "Nature"                           
+## [263] "Naval"                             "Naval Combat"                     
+## [265] "Ninja"                             "Noir"                             
+## [267] "Nonlinear"                         "Nostalgia"                        
+## [269] "NSFW"                              "Nudity"                           
+## [271] "Offroad"                           "Old School"                       
+## [273] "On-Rails Shooter"                  "Online Co-Op"                     
+## [275] "Open World"                        "Open World Survival Craft"        
+## [277] "Otome"                             "Outbreak Sim"                     
+## [279] "Parkour"                           "Parody"                           
+## [281] "Party"                             "Party-Based RPG"                  
+## [283] "Party Game"                        "Perma Death"                      
+## [285] "Philosophical"                     "Photo Editing"                    
+## [287] "Physics"                           "Pinball"                          
+## [289] "Pirates"                           "Pixel Graphics"                   
+## [291] "Platformer"                        "Point & Click"                    
+## [293] "Political"                         "Political Sim"                    
+## [295] "Politics"                          "Pool"                             
+## [297] "Post-apocalyptic"                  "Precision Platformer"             
+## [299] "Procedural Generation"             "Programming"                      
+## [301] "Psychedelic"                       "Psychological"                    
+## [303] "Psychological Horror"              "Puzzle"                           
+## [305] "Puzzle-Platformer"                 "PvE"                              
+## [307] "PvP"                               "Quick-Time Events"                
+## [309] "Racing"                            "Real-Time"                        
+## [311] "Real-Time with Pause"              "Real Time Tactics"                
+## [313] "Realistic"                         "Reboot"                           
+## [315] "Relaxing"                          "Remake"                           
+## [317] "Replay Value"                      "Resource Management"              
+## [319] "Retro"                             "Rhythm"                           
+## [321] "Robots"                            "Rock Music"                       
+## [323] "Rogue-like"                        "Rogue-lite"                       
+## [325] "Roguelike Deckbuilder"             "Roguevania"                       
+## [327] "Romance"                           "Rome"                             
+## [329] "RPG"                               "RPGMaker"                         
+## [331] "RTS"                               "Rugby"                            
+## [333] "Runner"                            "Sailing"                          
+## [335] "Sandbox"                           "Satire"                           
+## [337] "Sci-fi"                            "Science"                          
+## [339] "Score Attack"                      "Sequel"                           
+## [341] "Sexual Content"                    "Shooter"                          
+## [343] "Shop Keeper"                       "Short"                            
+## [345] "Side Scroller"                     "Silent Protagonist"               
+## [347] "Simulation"                        "Singleplayer"                     
+## [349] "Skateboarding"                     "Skating"                          
+## [351] "Skiing"                            "Sniper"                           
+## [353] "Snooker"                           "Snow"                             
+## [355] "Snowboarding"                      "Soccer"                           
+## [357] "Social Deduction"                  "Software"                         
+## [359] "Software Training"                 "Sokoban"                          
+## [361] "Solitaire"                         "Souls-like"                       
+## [363] "Soundtrack"                        "Space"                            
+## [365] "Space Sim"                         "Spaceships"                       
+## [367] "Spectacle fighter"                 "Spelling"                         
+## [369] "Split Screen"                      "Sports"                           
+## [371] "Stealth"                           "Steam Machine"                    
+## [373] "Steampunk"                         "Story Rich"                       
+## [375] "Strategy"                          "Strategy RPG"                     
+## [377] "Stylized"                          "Submarine"                        
+## [379] "Superhero"                         "Supernatural"                     
+## [381] "Surreal"                           "Survival"                         
+## [383] "Survival Horror"                   "Swordplay"                        
+## [385] "Tabletop"                          "Tactical"                         
+## [387] "Tactical RPG"                      "Tanks"                            
+## [389] "Team-Based"                        "Tennis"                           
+## [391] "Text-Based"                        "Third-Person Shooter"             
+## [393] "Third Person"                      "Thriller"                         
+## [395] "Tile-Matching"                     "Time Attack"                      
+## [397] "Time Management"                   "Time Manipulation"                
+## [399] "Time Travel"                       "Top-Down"                         
+## [401] "Top-Down Shooter"                  "Touch-Friendly"                   
+## [403] "Tower Defense"                     "TrackIR"                          
+## [405] "Trading"                           "Trading Card Game"                
+## [407] "Traditional Roguelike"             "Trains"                           
+## [409] "Transhumanism"                     "Transportation"                   
+## [411] "Trivia"                            "Turn-Based"                       
+## [413] "Turn-Based Combat"                 "Turn-Based Strategy"              
+## [415] "Turn-Based Tactics"                "Tutorial"                         
+## [417] "Twin Stick Shooter"                "Typing"                           
+## [419] "Underground"                       "Underwater"                       
+## [421] "Unforgiving"                       "Utilities"                        
+## [423] "Vampire"                           "Vehicular Combat"                 
+## [425] "Video Production"                  "Vikings"                          
+## [427] "Villain Protagonist"               "Violent"                          
+## [429] "Visual Novel"                      "Voice Control"                    
+## [431] "Volleyball"                        "Voxel"                            
+## [433] "VR"                                "VR Only"                          
+## [435] "Walking Simulator"                 "War"                              
+## [437] "Wargame"                           "Warhammer 40K"                    
+## [439] "Web Publishing"                    "Well-Written"                     
+## [441] "Werewolves"                        "Western"                          
+## [443] "Wholesome"                         "Word Game"                        
+## [445] "World War I"                       "World War II"                     
+## [447] "Wrestling"                         "Zombies"
+\end{verbatim}
+
+From steam's Categories, Genres and Tags, 3 subsets have been created
+with samples interesting for this study. Given steam's laxity at
+classifying these values, the 3 subsets have been created with our own
+interpretation. Additionally, tags that reffer to non-game software have
+been ignored.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Genres}
+\NormalTok{action\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Action}
+  \StringTok{"Action"}\NormalTok{, }\StringTok{"Action{-}Adventure"}\NormalTok{, }\StringTok{"Action RPG"}\NormalTok{, }\StringTok{"Action Roguelike"}\NormalTok{, }\StringTok{"Action RTS"}\NormalTok{,}
+  \StringTok{"Arcade"}\NormalTok{, }\StringTok{"Immersive Sim"}\NormalTok{, }\StringTok{"Metroidvania"}\NormalTok{, }\StringTok{"Musou"}\NormalTok{, }\StringTok{"Sandbox"}\NormalTok{, }\StringTok{"Survival"}\NormalTok{,}
+  \StringTok{"Survival Horror"}\NormalTok{, }\StringTok{"MOBA"}\NormalTok{)}
+\NormalTok{shooter\_genre}\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Shooter}
+  \StringTok{"Arena Shooter"}\NormalTok{, }\StringTok{"Battle Royale"}\NormalTok{, }\StringTok{"Boomer Shooter"}\NormalTok{, }\StringTok{"Bullet Hell"}\NormalTok{, }\StringTok{"Extraction Shooter"}\NormalTok{,}
+  \StringTok{"FPS"}\NormalTok{, }\StringTok{"Hero Shooter"}\NormalTok{, }\StringTok{"Looter Shooter"}\NormalTok{, }\StringTok{"On{-}Rails Shooter"}\NormalTok{, }\StringTok{"Third{-}Person Shooter"}\NormalTok{,}
+  \StringTok{"Top{-}Down Shooter"}\NormalTok{, }\StringTok{"Twin Stick Shooter"}\NormalTok{, }\StringTok{"Vehicular Combat"}\NormalTok{, }\StringTok{"Naval Combat"}\NormalTok{,}
+  \StringTok{"Combat Racing"}\NormalTok{)}
+\NormalTok{roguelike\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Roguelike}
+  \StringTok{"Rogue{-}like"}\NormalTok{, }\StringTok{"Rogue{-}lite"}\NormalTok{, }\StringTok{"Roguevania"}\NormalTok{, }\StringTok{"Traditional Roguelike"}\NormalTok{,}
+  \StringTok{"Roguelike Deckbuilder"}\NormalTok{, }\StringTok{"Mystery Dungeon"}\NormalTok{)}
+\NormalTok{RPG\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# RPG}
+  \StringTok{"RPG"}\NormalTok{, }\StringTok{"JRPG"}\NormalTok{, }\StringTok{"CRPG"}\NormalTok{, }\StringTok{"Strategy RPG"}\NormalTok{, }\StringTok{"Tactical RPG"}\NormalTok{, }\StringTok{"Otome"}\NormalTok{, }
+  \StringTok{"Dating Sim"}\NormalTok{, }\StringTok{"Visual Novel"}\NormalTok{, }\StringTok{"Interactive Fiction"}\NormalTok{, }\StringTok{"Text{-}Based"}\NormalTok{, }
+  \StringTok{"MMORPG"}\NormalTok{, }\StringTok{"MMO"}\NormalTok{)}
+\NormalTok{strategy\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Strategy}
+  \StringTok{"Strategy"}\NormalTok{, }\StringTok{"4X"}\NormalTok{, }\StringTok{"Grand Strategy"}\NormalTok{, }\StringTok{"RTS"}\NormalTok{, }\StringTok{"Real Time Tactics"}\NormalTok{,}
+  \StringTok{"Turn{-}Based Strategy"}\NormalTok{, }\StringTok{"Tactical"}\NormalTok{, }\StringTok{"Tabletop"}\NormalTok{, }\StringTok{"Wargame"}\NormalTok{, }\StringTok{"Political Sim"}\NormalTok{,}
+  \StringTok{"God Game"}\NormalTok{, }\StringTok{"Management"}\NormalTok{, }\StringTok{"Colony Sim"}\NormalTok{, }\StringTok{"City Builder"}\NormalTok{, }\StringTok{"Shop Keeper"}\NormalTok{,}
+  \StringTok{"Tower Defense"}\NormalTok{, }\StringTok{"Creature Collector"}\NormalTok{)}
+\NormalTok{simulation\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Simulation}
+  \StringTok{"Simulation"}\NormalTok{, }\StringTok{"Automobile Sim"}\NormalTok{, }\StringTok{"Farming Sim"}\NormalTok{, }\StringTok{"Medical Sim"}\NormalTok{,}
+  \StringTok{"Hobby Sim"}\NormalTok{, }\StringTok{"Life Sim"}\NormalTok{, }\StringTok{"Space Sim"}\NormalTok{, }\StringTok{"Outbreak Sim"}\NormalTok{)}
+\NormalTok{sport\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Sports}
+  \StringTok{"Sports"}\NormalTok{, }\StringTok{"Baseball"}\NormalTok{, }\StringTok{"Basketball"}\NormalTok{, }\StringTok{"Bowling"}\NormalTok{, }\StringTok{"Boxing"}\NormalTok{, }\StringTok{"BMX"}\NormalTok{, }\StringTok{"Cricket"}\NormalTok{,}
+  \StringTok{"Football"}\NormalTok{, }\StringTok{"Football (American)"}\NormalTok{, }\StringTok{"Football (Soccer)"}\NormalTok{, }\StringTok{"Soccer"}\NormalTok{,}
+  \StringTok{"Golf"}\NormalTok{, }\StringTok{"Hockey"}\NormalTok{, }\StringTok{"Mini Golf"}\NormalTok{, }\StringTok{"Motocross"}\NormalTok{, }\StringTok{"Pool"}\NormalTok{, }\StringTok{"Racing"}\NormalTok{, }\StringTok{"Rugby"}\NormalTok{,}
+  \StringTok{"Skateboarding"}\NormalTok{, }\StringTok{"Skating"}\NormalTok{, }\StringTok{"Skiing"}\NormalTok{, }\StringTok{"Snowboarding"}\NormalTok{, }\StringTok{"Snooker"}\NormalTok{, }\StringTok{"Tennis"}\NormalTok{,}
+  \StringTok{"Volleyball"}\NormalTok{, }\StringTok{"Wrestling"}\NormalTok{, }\StringTok{"Driving"}\NormalTok{)}
+\NormalTok{fighting\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Fighting}
+  \StringTok{"2D Fighter"}\NormalTok{, }\StringTok{"3D Fighter"}\NormalTok{, }\StringTok{"Fighting"}\NormalTok{, }\StringTok{"Hack and Slash"}\NormalTok{, }\StringTok{"Souls{-}like"}\NormalTok{)}
+\NormalTok{platformer\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Platformers \& runners }
+  \StringTok{"Platformer"}\NormalTok{, }\StringTok{"2D Platformer"}\NormalTok{, }\StringTok{"3D Platformer"}\NormalTok{, }\StringTok{"Precision Platformer"}\NormalTok{,}
+  \StringTok{"Runner"}\NormalTok{, }\StringTok{"Open World Survival Craft"}\NormalTok{)}
+\NormalTok{tabletop\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Puzzle, logic, board \& card games}
+  \StringTok{"Puzzle"}\NormalTok{, }\StringTok{"Puzzle{-}Platformer"}\NormalTok{, }\StringTok{"Logic"}\NormalTok{, }\StringTok{"Mahjong"}\NormalTok{,}
+  \StringTok{"Match 3"}\NormalTok{, }\StringTok{"Tile{-}Matching"}\NormalTok{, }\StringTok{"Sokoban"}\NormalTok{, }\StringTok{"Solitaire"}\NormalTok{, }\StringTok{"Trivia"}\NormalTok{,}
+  \StringTok{"Board Game"}\NormalTok{, }\StringTok{"Card Game"}\NormalTok{, }\StringTok{"Trading Card Game"}\NormalTok{, }\StringTok{"Hidden Object"}\NormalTok{,}
+  \StringTok{"Escape Room"}\NormalTok{, }\StringTok{"Chess"}\NormalTok{, }\StringTok{"Word Game"}\NormalTok{, }\StringTok{"Point \& Click"}\NormalTok{)}
+\NormalTok{casual\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\#  Casual / idle}
+  \StringTok{"Casual"}\NormalTok{, }\StringTok{"Idler"}\NormalTok{, }\StringTok{"Clicker"}\NormalTok{, }\StringTok{"Auto Battler"}\NormalTok{, }\StringTok{"Party Game"}\NormalTok{, }\StringTok{"Pinball"}\NormalTok{)}
+\NormalTok{horror\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Horror}
+  \StringTok{"Horror"}\NormalTok{, }\StringTok{"Psychological Horror"}\NormalTok{)}
+\NormalTok{music\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Music \& rhythm}
+  \StringTok{"Music"}\NormalTok{, }\StringTok{"Rhythm"}\NormalTok{, }\StringTok{"Typing"}\NormalTok{)}
+\NormalTok{walking\_sim\_genre }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Walking}
+  \StringTok{"Walking Simulator"}\NormalTok{, }\StringTok{"FMV"}\NormalTok{)}
+
+\NormalTok{genres }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
+  \AttributeTok{action =}\NormalTok{ action\_genre,}
+  \AttributeTok{shooter =}\NormalTok{ shooter\_genre,}
+  \AttributeTok{roguelike =}\NormalTok{ roguelike\_genre,}
+  \AttributeTok{RPG =}\NormalTok{ RPG\_genre,}
+  \AttributeTok{strategy =}\NormalTok{ strategy\_genre,}
+  \AttributeTok{simulation =}\NormalTok{ simulation\_genre,}
+  \AttributeTok{sport =}\NormalTok{ sport\_genre,}
+  \AttributeTok{fighting =}\NormalTok{ fighting\_genre,}
+  \AttributeTok{platformer =}\NormalTok{ platformer\_genre,}
+  \AttributeTok{tabletop =}\NormalTok{ tabletop\_genre,}
+  \AttributeTok{casual =}\NormalTok{ casual\_genre,}
+  \AttributeTok{horror =}\NormalTok{ horror\_genre,}
+  \AttributeTok{music =}\NormalTok{ music\_genre,}
+  \AttributeTok{walking\_sim =}\NormalTok{ walking\_sim\_genre}
+\NormalTok{)}
+
+
+\CommentTok{\#Mechanics}
+\NormalTok{resource\_management\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Economy, building, resources}
+  \StringTok{"Base{-}Building"}\NormalTok{, }\StringTok{"Building"}\NormalTok{, }\StringTok{"Resource Management"}\NormalTok{, }\StringTok{"Inventory Management"}\NormalTok{,}
+  \StringTok{"Crafting"}\NormalTok{, }\StringTok{"Automation"}\NormalTok{, }\StringTok{"Mining"}\NormalTok{, }\StringTok{"Farming"}\NormalTok{)}
+
+\NormalTok{customization\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Customization}
+  \StringTok{"Gun Customization"}\NormalTok{, }\StringTok{"Character Customization"}\NormalTok{)}
+\NormalTok{movement\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Movement}
+  \StringTok{"Stealth"}\NormalTok{, }\StringTok{"Parkour"}\NormalTok{, }\StringTok{"Swordplay"}\NormalTok{, }\StringTok{"Archery"}\NormalTok{, }\StringTok{"Sniper"}\NormalTok{)}
+\NormalTok{physics\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Physics}
+  \StringTok{"Physics"}\NormalTok{, }\StringTok{"Destruction"}\NormalTok{)}
+\NormalTok{failure\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Failure}
+  \StringTok{"Permadeath"}\NormalTok{, }\StringTok{"Perma Death"}\NormalTok{)}
+\NormalTok{procedural\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Procedural}
+  \StringTok{"Procedural Generation"}\NormalTok{, }\StringTok{"Music{-}Based Procedural Generation"}\NormalTok{)}
+\NormalTok{turn\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Turns}
+  \StringTok{"Turn{-}Based"}\NormalTok{, }\StringTok{"Turn{-}Based Combat"}\NormalTok{, }\StringTok{"Turn{-}Based Tactics"}\NormalTok{,}
+  \StringTok{"Real{-}Time"}\NormalTok{, }\StringTok{"Real{-}Time with Pause"}\NormalTok{,}
+  \StringTok{"Time Manipulation"}\NormalTok{, }\StringTok{"Time Management"}\NormalTok{, }\StringTok{"Time Attack"}\NormalTok{)}
+\NormalTok{spatial\_rules\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Spatial rules}
+  \StringTok{"Grid{-}Based Movement"}\NormalTok{, }\StringTok{"Hex Grid"}\NormalTok{)}
+\NormalTok{quicktime\_events\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# QTE}
+  \StringTok{"Quick{-}Time Events"}\NormalTok{)}
+\NormalTok{narrative\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Narrative logic}
+  \StringTok{"Choices Matter"}\NormalTok{, }\StringTok{"Multiple Endings"}\NormalTok{, }\StringTok{"Nonlinear"}\NormalTok{)}
+\NormalTok{exploration\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Exploration \& structure}
+  \StringTok{"Exploration"}\NormalTok{, }\StringTok{"Dungeon Crawler"}\NormalTok{, }\StringTok{"Collectathon"}\NormalTok{,}
+  \StringTok{"Boss Rush"}\NormalTok{, }\StringTok{"Side Scroller"}\NormalTok{, }\StringTok{"Loot"}\NormalTok{)}
+\NormalTok{social\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Social deduction}
+  \StringTok{"Social Deduction"}\NormalTok{)}
+\NormalTok{card\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Card/Deck mechanics}
+  \StringTok{"Deckbuilding"}\NormalTok{, }\StringTok{"Card Battler"}\NormalTok{)}
+\NormalTok{programming\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Programming}
+  \StringTok{"Programming"}\NormalTok{, }\StringTok{"Coding"}\NormalTok{)}
+\NormalTok{economy\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Economy}
+  \StringTok{"Trading"}\NormalTok{, }\StringTok{"Economy"}\NormalTok{, }\StringTok{"Capitalism"}\NormalTok{,}
+  \StringTok{"Diplomacy"}\NormalTok{)}
+\NormalTok{modding\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Modding / creation}
+  \StringTok{"Level Editor"}\NormalTok{, }\StringTok{"Moddable"}\NormalTok{, }\StringTok{"Mod"}\NormalTok{)}
+\NormalTok{tutorial\_mechanic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Tutorial}
+  \StringTok{"Tutorial"}\NormalTok{)}
+
+\NormalTok{mechanics }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
+  \AttributeTok{resource\_management =}\NormalTok{ resource\_management\_mechanic, }
+  \AttributeTok{customization =}\NormalTok{ customization\_mechanic, }
+  \AttributeTok{movement =}\NormalTok{ movement\_mechanic, }
+  \AttributeTok{physics =}\NormalTok{ physics\_mechanic, }
+  \AttributeTok{failure =}\NormalTok{ failure\_mechanic, }
+  \AttributeTok{procedural =}\NormalTok{ procedural\_mechanic, }
+  \AttributeTok{turn =}\NormalTok{ turn\_mechanic,}
+  \AttributeTok{spatial\_rules =}\NormalTok{ spatial\_rules\_mechanic,}
+  \AttributeTok{quicktime\_events =}\NormalTok{ quicktime\_events\_mechanic,}
+  \AttributeTok{narrative =}\NormalTok{ narrative\_mechanic,}
+  \AttributeTok{exploration =}\NormalTok{ exploration\_mechanic,}
+  \AttributeTok{social =}\NormalTok{ social\_mechanic,}
+  \AttributeTok{card =}\NormalTok{ card\_mechanic,}
+  \AttributeTok{programming =}\NormalTok{ programming\_mechanic,}
+  \AttributeTok{economy =}\NormalTok{ economy\_mechanic,}
+  \AttributeTok{modding =}\NormalTok{ modding\_mechanic,}
+  \AttributeTok{tutorial =}\NormalTok{ tutorial\_mechanic}
+\NormalTok{)}
+
+\CommentTok{\# Characteristics}
+\NormalTok{camera\_characteristic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Dimensionality \& camera}
+  \StringTok{"2D"}\NormalTok{, }\StringTok{"2.5D"}\NormalTok{, }\StringTok{"3D"}\NormalTok{,}
+  \StringTok{"Isometric"}\NormalTok{, }\StringTok{"Top{-}Down"}\NormalTok{,}
+  \StringTok{"6DOF"}\NormalTok{,}
+  \StringTok{"First{-}Person"}\NormalTok{, }\StringTok{"Third Person"}\NormalTok{)}
+
+\NormalTok{vr\_characteristic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# VR}
+  \StringTok{"VR"}\NormalTok{, }\StringTok{"VR Only"}\NormalTok{, }\StringTok{"Asymmetric VR"}\NormalTok{)}
+
+\NormalTok{players\_characteristic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Player count / mode}
+  \StringTok{"Singleplayer"}\NormalTok{,}
+  \StringTok{"Multiplayer"}\NormalTok{, }\StringTok{"Massively Multiplayer"}\NormalTok{,}
+  \StringTok{"Co{-}op"}\NormalTok{, }\StringTok{"Local Co{-}Op"}\NormalTok{, }\StringTok{"Online Co{-}Op"}\NormalTok{, }\StringTok{"Co{-}op Campaign"}\NormalTok{,}
+  \StringTok{"4 Player Local"}\NormalTok{, }\StringTok{"Split Screen"}\NormalTok{)}
+\NormalTok{team\_characteristic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Team/role structure}
+  \StringTok{"PvP"}\NormalTok{, }\StringTok{"PvE"}\NormalTok{, }\StringTok{"Team{-}Based"}\NormalTok{,}
+  \StringTok{"Asynchronous Multiplayer"}\NormalTok{)}
+\NormalTok{esports\_characteristic }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
+  \CommentTok{\# Competitive/e{-}sports}
+  \StringTok{"e{-}sports"}\NormalTok{)}
+
+\NormalTok{characteristics }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
+  \AttributeTok{camera =}\NormalTok{ camera\_characteristic,}
+  \AttributeTok{vr =}\NormalTok{ vr\_characteristic,}
+  \AttributeTok{players =}\NormalTok{ players\_characteristic,}
+  \AttributeTok{team =}\NormalTok{ team\_characteristic,}
+  \AttributeTok{esports =}\NormalTok{ esports\_characteristic}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Thankfully the task of filtering indie games is already provided by
+steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From
+the original dataset, only Indie games are obtained.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{indie }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Crowdfunded"}\NormalTok{, }\StringTok{"Kickstarter"}\NormalTok{, }\StringTok{"Indie"}\NormalTok{)}
+\NormalTok{indie\_pattern }\OtherTok{\textless{}{-}} \FunctionTok{str\_c}\NormalTok{(indie, }\AttributeTok{collapse =} \StringTok{"|"}\NormalTok{)}
+
+\NormalTok{indie\_games }\OtherTok{\textless{}{-}}\NormalTok{ steam }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(}
+    \FunctionTok{if\_any}\NormalTok{(}
+      \FunctionTok{c}\NormalTok{(categories, genres, tags),}
+      \SpecialCharTok{\textasciitilde{}} \FunctionTok{str\_detect}\NormalTok{(.x, indie\_pattern)}
+\NormalTok{    )}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+Prepare data for determining successful games
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{indie\_games\_data }\OtherTok{\textless{}{-}}\NormalTok{ indie\_games }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(appid, name, price, dlc\_count, windows, mac, linux, achievements, recommendations, supported\_languages, positive, negative, estimated\_owners, average\_playtime\_forever, median\_playtime\_forever, peak\_ccu, pct\_pos\_total, num\_reviews\_total)}
+
+
+
+\CommentTok{\#transform suported languages into count}
+\NormalTok{add\_column\_count }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(df, column, new\_col) \{}
+\NormalTok{  column\_quo }\OtherTok{\textless{}{-}} \FunctionTok{enquo}\NormalTok{(column)}
+
+\NormalTok{  df }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \StringTok{"\{new\_col\}"} \SpecialCharTok{:=} \FunctionTok{case\_when}\NormalTok{(}
+        \SpecialCharTok{!!}\NormalTok{column\_quo }\SpecialCharTok{==} \StringTok{"[]"} \SpecialCharTok{\textasciitilde{}} \DecValTok{0}\DataTypeTok{L}\NormalTok{,}
+        \ConstantTok{TRUE} \SpecialCharTok{\textasciitilde{}} \FunctionTok{str\_count}\NormalTok{(}\SpecialCharTok{!!}\NormalTok{column\_quo, }\StringTok{"\textquotesingle{}"}\NormalTok{) }\SpecialCharTok{\%/\%} \DecValTok{2}\DataTypeTok{L}
+\NormalTok{      )}
+\NormalTok{    )}
+\NormalTok{\}}
+
+\NormalTok{add\_range\_minmax }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(df, column, min\_column, max\_column) \{}
+\NormalTok{  column\_quo }\OtherTok{\textless{}{-}} \FunctionTok{enquo}\NormalTok{(column)}
+
+\NormalTok{  df }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \StringTok{"\{min\_column\}"} \SpecialCharTok{:=} \FunctionTok{as.integer}\NormalTok{(}\FunctionTok{str\_extract}\NormalTok{(}\SpecialCharTok{!!}\NormalTok{column\_quo, }\StringTok{"\^{}}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{s*}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{d+"}\NormalTok{)),}
+      \StringTok{"\{max\_column\}"} \SpecialCharTok{:=} \FunctionTok{as.integer}\NormalTok{(}\FunctionTok{str\_extract}\NormalTok{(}\SpecialCharTok{!!}\NormalTok{column\_quo, }\StringTok{"}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{d+}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{s*$"}\NormalTok{))}
+\NormalTok{    )}
+\NormalTok{\}}
+
+\CommentTok{\#Limpiar esta linea con los cambios de arturo }\AlertTok{TODO}
+\NormalTok{indie\_games\_data }\OtherTok{\textless{}{-}}\NormalTok{ indie\_games\_data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{add\_range\_minmax}\NormalTok{(estimated\_owners, }\StringTok{"estimated\_owners\_min"}\NormalTok{, }\StringTok{"estimated\_owners\_max"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# split owners range}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{estimated\_revenue =}\NormalTok{ ((estimated\_owners\_min }\SpecialCharTok{+}\NormalTok{ estimated\_owners\_max) }\SpecialCharTok{/} \DecValTok{2}\NormalTok{) }\SpecialCharTok{*}\NormalTok{ price) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# augment data with revenue}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{windows =} \FunctionTok{as.integer}\NormalTok{(windows }\SpecialCharTok{==} \StringTok{"True"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# parse logical to int}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{mac =} \FunctionTok{as.integer}\NormalTok{(mac }\SpecialCharTok{==} \StringTok{"True"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# parse logical to int}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{linux =} \FunctionTok{as.integer}\NormalTok{(linux }\SpecialCharTok{==} \StringTok{"True"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# parse logical to int}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{estimated\_owners)}
+\end{Highlighting}
+\end{Shaded}
+
+Cluster the data:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{indie\_games\_cluster }\OtherTok{\textless{}{-}}\NormalTok{ indie\_games\_data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{add\_column\_count}\NormalTok{(supported\_languages, }\StringTok{"languages\_count"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# Count languages}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{appid, }\SpecialCharTok{{-}}\NormalTok{name, }\SpecialCharTok{{-}}\NormalTok{supported\_languages)}
+
+
+\NormalTok{  indie\_games\_cluster }\OtherTok{\textless{}{-}}\NormalTok{ indie\_games\_cluster }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{( }\CommentTok{\# Avoid scaling binary columns}
+    \FunctionTok{across}\NormalTok{(}
+      \FunctionTok{where}\NormalTok{(is.numeric) }\SpecialCharTok{\&} \SpecialCharTok{!}\FunctionTok{all\_of}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"windows"}\NormalTok{, }\StringTok{"mac"}\NormalTok{, }\StringTok{"linux"}\NormalTok{)),}
+      \SpecialCharTok{\textasciitilde{}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{scale}\NormalTok{(.))}
+\NormalTok{    )}
+\NormalTok{  )}
+  
+\NormalTok{  km2 }\OtherTok{\textless{}{-}} \FunctionTok{kmeans}\NormalTok{(indie\_games\_cluster, }\AttributeTok{centers =} \DecValTok{3}\NormalTok{, }\AttributeTok{nstart =} \DecValTok{50}\NormalTok{)}
+\NormalTok{  indie\_games\_data}\SpecialCharTok{$}\NormalTok{success\_cluster}\OtherTok{\textless{}{-}}\NormalTok{ km2}\SpecialCharTok{$}\NormalTok{cluster}
+\NormalTok{  indie\_games}\SpecialCharTok{$}\NormalTok{success\_cluster}\OtherTok{\textless{}{-}}\NormalTok{ km2}\SpecialCharTok{$}\NormalTok{cluster}
+  \FunctionTok{colnames}\NormalTok{(indie\_games\_data)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  [1] "appid"                    "name"                    
+##  [3] "price"                    "dlc_count"               
+##  [5] "windows"                  "mac"                     
+##  [7] "linux"                    "achievements"            
+##  [9] "recommendations"          "supported_languages"     
+## [11] "positive"                 "negative"                
+## [13] "average_playtime_forever" "median_playtime_forever" 
+## [15] "peak_ccu"                 "pct_pos_total"           
+## [17] "num_reviews_total"        "estimated_owners_min"    
+## [19] "estimated_owners_max"     "estimated_revenue"       
+## [21] "success_cluster"
+\end{verbatim}
+
+\section{Can a single game have enough influence to make other games
+have its
+tag?}\label{can-a-single-game-have-enough-influence-to-make-other-games-have-its-tag}
+
+\subsection{Game study: Slay the Spire (Roguelike
+Deckbuilder)}\label{game-study-slay-the-spire-roguelike-deckbuilder}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ref\_game\_SlayTheSpire }\OtherTok{\textless{}{-}}\NormalTok{ cleaned\_steam }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(appid }\SpecialCharTok{==} \DecValTok{646570}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+
+\NormalTok{ref\_game\_SlayTheSpire}\SpecialCharTok{$}\NormalTok{name}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "Slay the Spire"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ref\_game\_SlayTheSpire}\SpecialCharTok{$}\NormalTok{release\_date}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "2019-01-23"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{build\_tag\_timeseriesV3 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(games, tag\_pattern, ref\_date,}
+                                   \AttributeTok{bin =} \FunctionTok{c}\NormalTok{(}\StringTok{"month"}\NormalTok{, }\StringTok{"year"}\NormalTok{),}
+                                   \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,}
+                                   \AttributeTok{window\_months =} \DecValTok{60}\NormalTok{,}
+                                   \AttributeTok{max\_date =} \FunctionTok{as.Date}\NormalTok{(}\StringTok{"2025{-}02{-}28"}\NormalTok{)) \{}
+\NormalTok{  bin }\OtherTok{\textless{}{-}} \FunctionTok{match.arg}\NormalTok{(bin)}
+
+
+  \CommentTok{\# Max months available after launch until Feb 28, 2025 (included)}
+\NormalTok{  max\_months\_available }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{difftime}\NormalTok{(max\_date, ref\_date, }\AttributeTok{units =} \StringTok{"days"}\NormalTok{)) }\SpecialCharTok{/}\NormalTok{ (}\FloatTok{365.25} \SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+
+  \CommentTok{\# Effective post window (in bins)}
+\NormalTok{  effective\_post\_months }\OtherTok{\textless{}{-}} \FunctionTok{min}\NormalTok{(window\_months, }\FunctionTok{floor}\NormalTok{(max\_months\_available))}
+
+  \CommentTok{\# Convert to bin units (month or year)}
+\NormalTok{  t\_min }\OtherTok{\textless{}{-}} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{) }\SpecialCharTok{{-}}\NormalTok{window\_months }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{window\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+\NormalTok{  t\_max }\OtherTok{\textless{}{-}} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{)  effective\_post\_months }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(effective\_post\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+
+\NormalTok{  df\_binned }\OtherTok{\textless{}{-}}\NormalTok{ games }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(tags, }\FunctionTok{fixed}\NormalTok{(tag\_pattern))) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \AttributeTok{t\_months =} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{difftime}\NormalTok{(release\_date, ref\_date, }\AttributeTok{units =} \StringTok{"days"}\NormalTok{)) }\SpecialCharTok{/}\NormalTok{ (}\FloatTok{365.25} \SpecialCharTok{/} \DecValTok{12}\NormalTok{),}
+      \AttributeTok{t\_bin =} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{) }\FunctionTok{floor}\NormalTok{(t\_months) }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(t\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+\NormalTok{    ) }\SpecialCharTok{\%\textgreater{}\%}
+    \CommentTok{\# Window in BIN space, with post capped by max\_date}
+    \FunctionTok{filter}\NormalTok{(t\_bin }\SpecialCharTok{\textgreater{}=}\NormalTok{ t\_min, t\_bin }\SpecialCharTok{\textless{}=}\NormalTok{ t\_max) }\SpecialCharTok{\%\textgreater{}\%}
+    \CommentTok{\# Exclude launch window in BIN space}
+    \FunctionTok{filter}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t\_bin) }\SpecialCharTok{\textgreater{}=}\NormalTok{ exclude\_window\_months) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{count}\NormalTok{(t\_bin, }\AttributeTok{name =} \StringTok{"freq"}\NormalTok{)}
+
+\NormalTok{  full\_bins }\OtherTok{\textless{}{-}} \FunctionTok{tibble}\NormalTok{(}\AttributeTok{t\_bin =} \FunctionTok{seq}\NormalTok{(t\_min, t\_max, }\AttributeTok{by =} \DecValTok{1}\NormalTok{))}
+
+\NormalTok{  full\_bins }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{left\_join}\NormalTok{(df\_binned, }\AttributeTok{by =} \StringTok{"t\_bin"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}\AttributeTok{freq =}\NormalTok{ tidyr}\SpecialCharTok{::}\FunctionTok{replace\_na}\NormalTok{(freq, }\DecValTok{0}\DataTypeTok{L}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{arrange}\NormalTok{(t\_bin) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \AttributeTok{post =} \FunctionTok{as.integer}\NormalTok{(t\_bin }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{),}
+      \AttributeTok{t =}\NormalTok{ t\_bin}
+\NormalTok{    )}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ts\_slayTheSpire }\OtherTok{\textless{}{-}} \FunctionTok{build\_tag\_timeseriesV3}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{tag\_pattern =} \StringTok{"Roguelike Deckbuilder"}\NormalTok{,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_SlayTheSpire}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,              }\CommentTok{\# months gives more detail}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,  }\CommentTok{\# drop ±1 month around launch}
+  \AttributeTok{window\_months =} \DecValTok{84}          \CommentTok{\# ±6 years}
+\NormalTok{)}
+
+\CommentTok{\# Piecewise model (pre trend + post jump + slope change)}
+\NormalTok{m\_slayTheSpire }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(freq }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ post }\SpecialCharTok{+}\NormalTok{ t}\SpecialCharTok{:}\NormalTok{post, }\AttributeTok{data =}\NormalTok{ ts\_slayTheSpire)}
+\FunctionTok{summary}\NormalTok{(m\_slayTheSpire)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = freq ~ t + post + t:post, data = ts_slayTheSpire)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -5.2112 -0.3671 -0.0735  0.6113 16.1256 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.472503   0.464150   1.018  0.31028    
+## t            0.006488   0.009542   0.680  0.49756    
+## post        -2.083234   0.689968  -3.019  0.00297 ** 
+## t:post       0.159963   0.015323  10.439  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 2.159 on 154 degrees of freedom
+## Multiple R-squared:  0.696,  Adjusted R-squared:  0.6901 
+## F-statistic: 117.5 on 3 and 154 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(ts\_slayTheSpire, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.7}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_slayTheSpire, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_slayTheSpire, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Tag adoption around Slay the Spire launch"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Tag: Roguelike Deckbuilder — months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games with the tag RogueLike DeckBuilding(per month)"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-17-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{build\_global\_timeseries }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(games, ref\_date,}
+                                    \AttributeTok{bin =} \FunctionTok{c}\NormalTok{(}\StringTok{"month"}\NormalTok{, }\StringTok{"year"}\NormalTok{),}
+                                    \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,}
+                                    \AttributeTok{window\_months =} \DecValTok{60}\NormalTok{,}
+                                    \AttributeTok{max\_date =} \FunctionTok{as.Date}\NormalTok{(}\StringTok{"2025{-}02{-}28"}\NormalTok{)) \{}
+
+\NormalTok{  bin }\OtherTok{\textless{}{-}} \FunctionTok{match.arg}\NormalTok{(bin)}
+
+  \CommentTok{\# {-}{-}{-} compute max available months until Feb 2025 {-}{-}{-}}
+\NormalTok{  max\_months\_available }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}
+    \FunctionTok{difftime}\NormalTok{(max\_date, ref\_date, }\AttributeTok{units =} \StringTok{"days"}\NormalTok{)}
+\NormalTok{  ) }\SpecialCharTok{/}\NormalTok{ (}\FloatTok{365.25} \SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+
+\NormalTok{  effective\_window\_months }\OtherTok{\textless{}{-}} \FunctionTok{min}\NormalTok{(window\_months, }\FunctionTok{floor}\NormalTok{(max\_months\_available))}
+
+  \CommentTok{\# {-}{-}{-} compute time relative to launch {-}{-}{-}}
+\NormalTok{  df\_raw }\OtherTok{\textless{}{-}}\NormalTok{ games }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \AttributeTok{t\_months =} \FunctionTok{as.numeric}\NormalTok{(}
+        \FunctionTok{difftime}\NormalTok{(release\_date, ref\_date, }\AttributeTok{units =} \StringTok{"days"}\NormalTok{)}
+\NormalTok{      ) }\SpecialCharTok{/}\NormalTok{ (}\FloatTok{365.25} \SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+\NormalTok{    ) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{filter}\NormalTok{(t\_months }\SpecialCharTok{\textless{}=}\NormalTok{ effective\_window\_months) }\SpecialCharTok{\%\textgreater{}\%}   \CommentTok{\# cap at Feb 2025}
+    \FunctionTok{filter}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t\_months) }\SpecialCharTok{\textgreater{}}\NormalTok{ exclude\_window\_months)}
+
+  \CommentTok{\# {-}{-}{-} binning {-}{-}{-}}
+\NormalTok{  df\_binned }\OtherTok{\textless{}{-}}\NormalTok{ df\_raw }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \AttributeTok{t\_bin =} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{) }\FunctionTok{floor}\NormalTok{(t\_months) }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(t\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+\NormalTok{    ) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{count}\NormalTok{(t\_bin, }\AttributeTok{name =} \StringTok{"freq"}\NormalTok{)}
+
+  \CommentTok{\# {-}{-}{-} full bin sequence {-}{-}{-}}
+\NormalTok{  t\_min }\OtherTok{\textless{}{-}} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{) }\SpecialCharTok{{-}}\NormalTok{window\_months }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{window\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+\NormalTok{  t\_max }\OtherTok{\textless{}{-}} \ControlFlowTok{if}\NormalTok{ (bin }\SpecialCharTok{==} \StringTok{"month"}\NormalTok{) effective\_window\_months }\ControlFlowTok{else} \FunctionTok{floor}\NormalTok{(effective\_window\_months }\SpecialCharTok{/} \DecValTok{12}\NormalTok{)}
+
+\NormalTok{  full\_bins }\OtherTok{\textless{}{-}} \FunctionTok{tibble}\NormalTok{(}
+    \AttributeTok{t\_bin =} \FunctionTok{seq}\NormalTok{(t\_min, t\_max, }\AttributeTok{by =} \DecValTok{1}\NormalTok{)}
+\NormalTok{  )}
+
+  \CommentTok{\# {-}{-}{-} fill missing bins {-}{-}{-}}
+\NormalTok{  full\_bins }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{left\_join}\NormalTok{(df\_binned, }\AttributeTok{by =} \StringTok{"t\_bin"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}\AttributeTok{freq =}\NormalTok{ tidyr}\SpecialCharTok{::}\FunctionTok{replace\_na}\NormalTok{(freq, }\DecValTok{0}\DataTypeTok{L}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{arrange}\NormalTok{(t\_bin) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+      \AttributeTok{post =} \FunctionTok{as.integer}\NormalTok{(t\_bin }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{),}
+      \AttributeTok{t =}\NormalTok{ t\_bin}
+\NormalTok{    )}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Global baseline (all games)}
+\NormalTok{ts\_global }\OtherTok{\textless{}{-}} \FunctionTok{build\_global\_timeseries}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_SlayTheSpire}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,}
+  \AttributeTok{window\_months =} \DecValTok{84}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{m\_tag }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(freq }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ post }\SpecialCharTok{+}\NormalTok{ t}\SpecialCharTok{:}\NormalTok{post, }\AttributeTok{data =}\NormalTok{ ts\_slayTheSpire)}
+\NormalTok{m\_global }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(freq }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ post }\SpecialCharTok{+}\NormalTok{ t}\SpecialCharTok{:}\NormalTok{post, }\AttributeTok{data =}\NormalTok{ ts\_global)}
+
+\FunctionTok{summary}\NormalTok{(m\_tag)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = freq ~ t + post + t:post, data = ts_slayTheSpire)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -5.2112 -0.3671 -0.0735  0.6113 16.1256 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.472503   0.464150   1.018  0.31028    
+## t            0.006488   0.009542   0.680  0.49756    
+## post        -2.083234   0.689968  -3.019  0.00297 ** 
+## t:post       0.159963   0.015323  10.439  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 2.159 on 154 degrees of freedom
+## Multiple R-squared:  0.696,  Adjusted R-squared:  0.6901 
+## F-statistic: 117.5 on 3 and 154 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(m\_global)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = freq ~ t + post + t:post, data = ts_global)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1371.34   -50.55     3.04    80.96   830.06 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  585.9680    42.8388  13.678  < 2e-16 ***
+## t              7.7497     0.8807   8.799 2.62e-15 ***
+## post        -207.3698    63.6807  -3.256  0.00139 ** 
+## t:post         5.8495     1.4143   4.136 5.79e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 199.2 on 154 degrees of freedom
+## Multiple R-squared:  0.7985, Adjusted R-squared:  0.7946 
+## F-statistic: 203.5 on 3 and 154 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{combined }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(}
+\NormalTok{  ts\_slayTheSpire }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"Roguelike Deckbuilder"}\NormalTok{, }\AttributeTok{series =} \StringTok{"tag"}\NormalTok{),}
+\NormalTok{  ts\_global }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"All games"}\NormalTok{, }\AttributeTok{series =} \StringTok{"global"}\NormalTok{)}
+\NormalTok{)}
+
+\FunctionTok{ggplot}\NormalTok{(combined, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq, }\AttributeTok{color =}\NormalTok{ type)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.6}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(combined, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(combined, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Slope comparison around Slay the Spire launch"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Target tag vs overall Steam release trend (monthly bins)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t = 0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games per month"}\NormalTok{,}
+    \AttributeTok{color =} \StringTok{"Series"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-21-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{m\_diff }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(freq }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{*}\NormalTok{ post }\SpecialCharTok{*}\NormalTok{ series, }\AttributeTok{data =}\NormalTok{ combined)}
+\FunctionTok{summary}\NormalTok{(m\_diff)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = freq ~ t * post * series, data = combined)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1371.34    -4.30    -0.07     7.38   830.06 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)       585.9680    30.2934  19.343  < 2e-16 ***
+## t                   7.7497     0.6228  12.443  < 2e-16 ***
+## post             -207.3698    45.0317  -4.605 6.04e-06 ***
+## seriestag        -585.4955    42.8413 -13.667  < 2e-16 ***
+## t:post              5.8495     1.0001   5.849 1.26e-08 ***
+## t:seriestag        -7.7432     0.8808  -8.792  < 2e-16 ***
+## post:seriestag    205.2866    63.6844   3.223   0.0014 ** 
+## t:post:seriestag   -5.6895     1.4144  -4.023 7.24e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 140.9 on 308 degrees of freedom
+## Multiple R-squared:  0.8864, Adjusted R-squared:  0.8839 
+## F-statistic: 343.5 on 7 and 308 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\subsection{Game Study: The Binding Of Isaac
+(Roguelike)}\label{game-study-the-binding-of-isaac-roguelike}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ref\_game\_BindingOfIsaac }\OtherTok{\textless{}{-}}\NormalTok{ cleaned\_steam }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(appid }\SpecialCharTok{==} \DecValTok{113200}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+
+\NormalTok{ref\_game\_BindingOfIsaac}\SpecialCharTok{$}\NormalTok{name}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "The Binding of Isaac"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ref\_game\_BindingOfIsaac}\SpecialCharTok{$}\NormalTok{release\_date}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "2011-09-28"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ts\_BindingOfIsaac }\OtherTok{\textless{}{-}} \FunctionTok{build\_tag\_timeseriesV3}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{tag\_pattern =} \StringTok{"Roguelike"}\NormalTok{,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_BindingOfIsaac}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,              }\CommentTok{\# months gives more detail}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,  }\CommentTok{\# drop ±1 month around launch}
+  \AttributeTok{window\_months =} \DecValTok{168}         \CommentTok{\# ±6 years}
+\NormalTok{)}
+
+\NormalTok{ref\_game\_BindingOfIsaacRebirth }\OtherTok{\textless{}{-}}\NormalTok{ cleaned\_steam }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(appid }\SpecialCharTok{==} \DecValTok{250900}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+
+\NormalTok{ref\_game\_BindingOfIsaacRebirth}\SpecialCharTok{$}\NormalTok{name}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "The Binding of Isaac: Rebirth"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ref\_game\_BindingOfIsaacRebirth}\SpecialCharTok{$}\NormalTok{release\_date}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "2014-11-04"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ts\_BindingOfIsaacRebirth }\OtherTok{\textless{}{-}} \FunctionTok{build\_tag\_timeseriesV3}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{tag\_pattern =} \StringTok{"Roguelike"}\NormalTok{,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_BindingOfIsaacRebirth}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,              }\CommentTok{\# months gives more detail}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,  }\CommentTok{\# drop ±1 month around launch}
+  \AttributeTok{window\_months =} \DecValTok{120}         \CommentTok{\# ±6 years}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(ts\_BindingOfIsaac, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.7}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_BindingOfIsaac, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_BindingOfIsaac, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Tag adoption around The Binding Of Isaac"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Tag: Roguelike — months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games with the tag RogueLike(per month)"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-24-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Global baseline (all games)}
+\NormalTok{ts\_global }\OtherTok{\textless{}{-}} \FunctionTok{build\_global\_timeseries}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_BindingOfIsaac}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,}
+  \AttributeTok{window\_months =} \DecValTok{180}
+\NormalTok{)}
+
+\NormalTok{plot\_df }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(}
+\NormalTok{  ts\_BindingOfIsaac }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"Roguelike"}\NormalTok{),}
+\NormalTok{  ts\_global }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"All games"}\NormalTok{)}
+\NormalTok{)}
+
+\FunctionTok{ggplot}\NormalTok{(plot\_df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq, }\AttributeTok{color =}\NormalTok{ type)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.6}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(plot\_df, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(plot\_df, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Slope comparison around Slay the Spire launch"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Target tag vs overall Steam release trend (monthly bins)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t = 0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games per month"}\NormalTok{,}
+    \AttributeTok{color =} \StringTok{"Series"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-25-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(ts\_BindingOfIsaacRebirth, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.7}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_BindingOfIsaacRebirth, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x, }\AttributeTok{data =} \FunctionTok{subset}\NormalTok{(ts\_BindingOfIsaacRebirth, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Tag adoption around The Binding Of Isaac REBIRTH"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Tag: Roguelike — months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t=0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games with the tag RogueLike(per month)"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-26-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Global baseline (all games)}
+\NormalTok{ts\_global }\OtherTok{\textless{}{-}} \FunctionTok{build\_global\_timeseries}\NormalTok{(}
+  \AttributeTok{games =}\NormalTok{ cleaned\_steam,}
+  \AttributeTok{ref\_date =}\NormalTok{ ref\_game\_BindingOfIsaacRebirth}\SpecialCharTok{$}\NormalTok{release\_date,}
+  \AttributeTok{bin =} \StringTok{"month"}\NormalTok{,}
+  \AttributeTok{exclude\_window\_months =} \DecValTok{1}\NormalTok{,}
+  \AttributeTok{window\_months =} \DecValTok{120}
+\NormalTok{)}
+
+\NormalTok{plot\_df }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(}
+\NormalTok{  ts\_BindingOfIsaac }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"Roguelike"}\NormalTok{),}
+\NormalTok{  ts\_global }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{type =} \StringTok{"All games"}\NormalTok{)}
+\NormalTok{)}
+
+\FunctionTok{ggplot}\NormalTok{(plot\_df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ t, }\AttributeTok{y =}\NormalTok{ freq, }\AttributeTok{color =}\NormalTok{ type)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.6}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(plot\_df, t }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}
+    \AttributeTok{data =} \FunctionTok{subset}\NormalTok{(plot\_df, t }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{),}
+    \AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{xintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Slope comparison around Slay the Spire launch"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Target tag vs overall Steam release trend (monthly bins)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Months relative to launch (t = 0)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Number of released games per month"}\NormalTok{,}
+    \AttributeTok{color =} \StringTok{"Series"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{SteamSuccessfulIndieGamesStudy_files/figure-latex/unnamed-chunk-27-1.pdf}}
+
+\end{document}
