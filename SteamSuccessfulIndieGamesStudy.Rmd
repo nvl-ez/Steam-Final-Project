@@ -59,7 +59,6 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(purrr)
-
 # Dates & time
 library(lubridate)
 
@@ -160,10 +159,13 @@ cleaned_steam <- steam %>%
   arrange(name, desc(price), desc(num_reviews_total)) %>%
   group_by(name) %>%
   slice(1) %>%
-  ungroup()
+  ungroup() %>%
+  # ReleaseDate treatment
+  mutate(release_date = as.Date(release_date)) %>%
+  filter(!is.na(release_date))
 ```
 
-```{r}
+```{r, echo = FALSE}
 add_range_minmax <- function(df, column, min_column, max_column) {
   column_quo <- enquo(column)
 
@@ -196,7 +198,7 @@ summary(cleaned_steam)
 
 Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
 
-```{r}
+```{r, echo = FALSE}
 # Funcion helper 
 get_unique_list_values <- function(x) {
   x <- x[x != "[]"]
@@ -213,7 +215,7 @@ get_unique_list_values <- function(x) {
 ```
 
 Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
-```{r}
+```{r, echo = FALSE}
 get_unique_dict_keys <- function(x) {
   x <- x[x != "[]"]
   
@@ -227,23 +229,23 @@ get_unique_dict_keys <- function(x) {
 
 
 ## Obtain Unique values for different columns
-```{r}
+```{r, echo = FALSE}
 steam_categories <- get_unique_list_values(cleaned_steam$categories)
 steam_categories
 ```
-```{r}
+```{r, echo = FALSE}
 steam_genres <- get_unique_list_values(cleaned_steam$genres)
 steam_genres
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 steam_tags <- get_unique_dict_keys(cleaned_steam$tags)
 steam_tags
 ```
 
 From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
-```{r}
+```{r, echo = FALSE}
 #Genres
 action_genre <- c(
   # Action
@@ -442,7 +444,7 @@ characteristics <- list(
 
 
 Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
-```{r}
+```{r, echo = FALSE}
 indie <- c("Crowdfunded", "Kickstarter", "Indie")
 indie_pattern <- str_c(indie, collapse = "|")
 
@@ -456,7 +458,7 @@ indie_games <- steam %>%
 ```
 
 Prepare data for determining successful games
-```{r}
+```{r, echo = FALSE}
 indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
 
 
@@ -495,7 +497,7 @@ indie_games_data <- indie_games_data %>%
 ```
 
 Cluster the data:
-```{r}
+```{r, echo = FALSE}
 indie_games_cluster <- indie_games_data %>% 
   add_column_count(supported_languages, "languages_count") %>% # Count languages
   select(-appid, -name, -supported_languages)
@@ -512,4 +514,385 @@ indie_games_cluster <- indie_games_data %>%
   indie_games_data$success_cluster<- km2$cluster
   indie_games$success_cluster<- km2$cluster
   colnames(indie_games_data)
+```
+
+
+
+
+
+# Can a single game have enough influence to make other games have its tag?
+
+## Game study: Slay the Spire (Roguelike Deckbuilder)
+
+
+```{r, echo = FALSE}
+ref_game_SlayTheSpire <- cleaned_steam %>% filter(appid == 646570) %>% slice(1)
+
+ref_game_SlayTheSpire$name
+ref_game_SlayTheSpire$release_date
+```
+
+
+```{r, echo = FALSE}
+library(lubridate)
+
+month_index <- function(d) {
+  year(d) * 12 + month(d)
+}
+
+build_tag_timeseries_month <- function(games, tag_pattern, ref_date,
+                                       window_months = 60,
+                                       max_date = as.Date("2025-02-28")) {
+
+  ref_date <- as.Date(ref_date)
+  max_date <- as.Date(max_date)
+
+  ref_mi <- month_index(ref_date)
+  max_mi <- month_index(max_date)
+
+  t_min <- -window_months
+  t_max <- min(window_months, max_mi - ref_mi)
+
+  df_binned <- games %>%
+    dplyr::filter(stringr::str_detect(tags, stringr::fixed(tag_pattern))) %>%
+    dplyr::mutate(
+      release_date = as.Date(release_date),
+      t = month_index(release_date) - ref_mi
+    ) %>%
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
+
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
+
+  full_bins %>%
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
+}
+
+
+```
+
+
+```{r, echo = FALSE}
+ts_slayTheSpire <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Roguelike Deckbuilder",
+  ref_date = ref_game_SlayTheSpire$release_date,
+  window_months = 84 # ±7 years
+)
+
+# Piecewise model (pre trend + post jump + slope change)
+m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
+summary(m_slayTheSpire)
+
+```
+
+```{r, echo = FALSE}
+ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(data = subset(ts_slayTheSpire, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_slayTheSpire, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_slayTheSpire$t),to = max(ts_slayTheSpire$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around Slay the Spire launch",
+    subtitle = "Tag: Roguelike Deckbuilder — months relative to launch (t=0)",
+    x = "Months relative to launch (t=0)",
+    y = "Number of released games with the tag RogueLike DeckBuilding(per month)"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r, echo = FALSE}
+build_global_timeseries_month <- function(games, ref_date,
+                                          window_months = 60,
+                                          max_date = as.Date("2025-02-28")) {
+
+  ref_date <- as.Date(ref_date)
+  max_date <- as.Date(max_date)
+
+  ref_mi <- month_index(ref_date)
+  max_mi <- month_index(max_date)
+
+  t_min <- -window_months
+  t_max <- min(window_months, max_mi - ref_mi)
+
+  df_binned <- games %>%
+    dplyr::mutate(
+      release_date = as.Date(release_date),
+      t = month_index(release_date) - ref_mi
+    ) %>%
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
+
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
+
+  full_bins %>%
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
+}
+
+```
+
+```{r, echo = FALSE}
+# Global baseline (all games)
+ts_global <- build_global_timeseries_month(
+  games = cleaned_steam,
+  ref_date = ref_game_SlayTheSpire$release_date,
+  window_months = 84
+)
+
+```
+
+```{r, echo = FALSE}
+m_tag <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
+m_global <- lm(freq ~ t + post + t:post, data = ts_global)
+
+summary(m_tag)
+summary(m_global)
+
+```
+
+```{r, echo = FALSE}
+combined <- bind_rows(
+  ts_slayTheSpire %>% mutate(type = "Roguelike Deckbuilder", series = "tag"),
+  ts_global %>% mutate(type = "All games", series = "global")
+)
+
+ggplot(combined, aes(x = t, y = freq, color = type)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(data = subset(combined, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(combined, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(combined$t),to = max(combined$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Slope comparison around Slay the Spire launch",
+    subtitle = "Target tag vs overall Steam release trend (monthly bins)",
+    x = "Months relative to launch (t = 0)",
+    y = "Number of released games per month",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+
+m_diff <- lm(freq ~ t * post * series, data = combined)
+summary(m_diff)
+
+```
+
+## Game Study: The Binding Of Isaac + The Binding Of Isaac Rebirth (Roguelike)
+
+```{r, echo = FALSE}
+ref_game_BindingOfIsaac <- cleaned_steam %>% filter(appid == 113200) %>% slice(1)
+
+ref_game_BindingOfIsaac$name
+ref_game_BindingOfIsaac$release_date
+
+ts_BindingOfIsaac <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Roguelike",
+  ref_date = ref_game_BindingOfIsaac$release_date,
+  window_months = 168 # ±14 years
+)
+
+ref_game_BindingOfIsaacRebirth <- cleaned_steam %>% filter(appid == 250900) %>% slice(1)
+
+ref_game_BindingOfIsaacRebirth$name
+ref_game_BindingOfIsaacRebirth$release_date
+
+
+ts_BindingOfIsaacRebirth <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Roguelike",
+  ref_date = ref_game_BindingOfIsaacRebirth$release_date,
+  window_months = 132 # ±11 years
+)
+```
+
+```{r, echo = FALSE}
+ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaac$t),to = max(ts_BindingOfIsaac$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 200)) +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 25)
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around The Binding Of Isaac",
+    subtitle = "Tag: Roguelike — months relative to launch (t=0)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+  ) +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+# Global baseline (all games)
+ts_global <- build_global_timeseries_month(
+  games = cleaned_steam,
+  ref_date = ref_game_BindingOfIsaac$release_date,
+  window_months = 168
+)
+
+plot_df <- bind_rows(
+  ts_BindingOfIsaac %>% mutate(type = "Roguelike"),
+  ts_global %>% mutate(type = "All games")
+)
+```
+
+
+```{r, echo = FALSE}
+ggplot(plot_df, aes(x = t, y = freq, color = type)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(plot_df$t),to = max(plot_df$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Slope comparison around The BInding of Isaac launch",
+    subtitle = "Target tag vs overall Steam release trend (monthly bins)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r, echo = FALSE}
+ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t > 0)) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 200)) +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 25)
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around The Binding Of Isaac REBIRTH",
+    subtitle = "Tag: Roguelike — months relative to launch (t=0)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+  ) +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+# Global baseline (all games)
+ts_global <- build_global_timeseries_month(
+  games = cleaned_steam,
+  ref_date = ref_game_BindingOfIsaacRebirth$release_date,
+  window_months = 120
+)
+
+plot_df <- bind_rows(
+  ts_BindingOfIsaacRebirth %>% mutate(type = "Roguelike"),
+  ts_global %>% mutate(type = "All games")
+)
+```
+
+
+```{r, echo = FALSE}
+ggplot(plot_df, aes(x = t, y = freq, color = type)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Slope comparison around The BInding of Isaac Rebirth launch",
+    subtitle = "Roguelike tag vs overall Steam releases",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r, echo = FALSE}
+ref_game_Terraria <- cleaned_steam %>% filter(appid == 105600) %>% slice(1)
+
+ref_game_Terraria$name
+ref_game_Terraria$release_date
+
+
+ts_Terraria <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Open World Survival Craft",
+  ref_date = ref_game_Terraria$release_date,
+  window_months = 168 # ±10 years
+)
+
+```
+
+```{r, echo = FALSE}
+ggplot(ts_Terraria, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(data = subset(ts_Terraria, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_Terraria, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_Terraria$t),to = max(ts_Terraria$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 50)) +
+  scale_y_continuous(
+    breaks = seq(0, 50, by = 10)
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around Terraria",
+    subtitle = "Tag: Open World Survival Craft — months relative to launch (t=0)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+  ) +
+  theme_minimal()
+
 ```
