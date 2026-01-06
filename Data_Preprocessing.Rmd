@@ -189,8 +189,9 @@ filtered_data <- first_cleaned_steam %>%
 
 ```{r popularGames}
 
-#buyedGames <- fourth_cleaned_steam[ fourth_cleaned_steam$estimated_owners_min >= 500000,]
-buyedGames <- fourth_cleaned_steam
+buyedGames <- fourth_cleaned_steam[ fourth_cleaned_steam$estimated_owners_min >= 500000,]
+nrow(buyedGames)
+#buyedGames <- fourth_cleaned_steam
 ```
 ```{r get popular games}
 popularGames <- buyedGames
@@ -218,6 +219,8 @@ while checking for "popular" games the amount of them was quite small
 but if we consider unsuccesful games, the trends are much clearer
 
 ```{r}
+tags <- get_unique_dict_keys(popularGames[popularGames$appid == 945360,]$tags)
+tags
   taggedGames <- popularGames %>% 
   filter(
     if_any(

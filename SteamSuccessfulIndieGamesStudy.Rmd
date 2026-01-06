@@ -641,6 +641,9 @@ delta_slope <- b["t:post"]
 
 c(slope_pre = slope_pre, slope_post = slope_post, slope_change = delta_slope)
 
+
+```
+```{r}
 # horizon: 20 time units after the datapoint
 H <- 6
 
@@ -656,6 +659,71 @@ res <- trend_change_test(
 
 res
 
+```
+#TODO: merge this later, grabbed from Nahuel's code
+```{r}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
+
+```{r}
+checkIfInfluentialTag <- function(row, df, tag) {
+
+  ts_row <- build_tag_timeseriesV3(
+    games = df,
+    tag_pattern = tag,
+    ref_date = row$release_date,
+    bin = "month",
+    exclude_window_months = 1,
+    window_months = 84
+  )
+
+  m <- lm(freq ~ t + post + t:post, data = ts_row)
+
+  H <- 6
+  pre_sd <- sd(ts_row$freq[ts_row$post == 0], na.rm = TRUE)
+  M <- 0.10 * pre_sd
+
+  res <- trend_change_test(m = m, H = H, M = M)
+
+  # IMPORTANT: make this return a single TRUE/FALSE.
+  # Adjust this line to match what trend_change_test returns.
+  isTRUE(res) || isTRUE(res$influential) || isTRUE(res$reject)
+}
+
+
+checkIfInfluentialOverall <- function(i,df){
+  row <- df[i, , drop = FALSE]
+  tags <- get_unique_dict_keys(row$tags)
+  if (length(tags) == 0) return(FALSE)
+  for(tag in tags){
+    if(checkIfInfluentialTag(row,df,tag)){
+      return(TRUE)
+    }
+    
+  }
+  FALSE
+}
+```
+
+
+```{r}
+# 
+# cleaned_steam$influential <- FALSE  # preallocate
+# 
+# cleaned_steam$influential <- vapply(
+#   seq_len(nrow(popularGames)),
+#   checkIfInfluentialOverall,
+#   logical(1),
+#   df = cleaned_steam
+# )
 ```
 
 ```{r}
