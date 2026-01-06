@@ -1289,6 +1289,8 @@ ref_game_SlayTheSpire$name</code></pre>
 <pre><code>## [1] &quot;Slay the Spire&quot;</code></pre>
 <pre class="r"><code>ref_game_SlayTheSpire$release_date</code></pre>
 <pre><code>## [1] &quot;2019-01-23&quot;</code></pre>
+<pre class="r"><code>ref_game_SlayTheSpire$tags</code></pre>
+<pre><code>## [1] &quot;{&#39;Roguelike Deckbuilder&#39;: 1705, &#39;Card Game&#39;: 1568, &#39;Card Battler&#39;: 1519, &#39;Rogue-like&#39;: 1366, &#39;Deckbuilding&#39;: 1107, &#39;Turn-Based&#39;: 980, &#39;Strategy&#39;: 791, &#39;Singleplayer&#39;: 675, &#39;Rogue-lite&#39;: 642, &#39;Replay Value&#39;: 540, &#39;Indie&#39;: 503, &#39;Difficult&#39;: 353, &#39;Dungeon Crawler&#39;: 322, &#39;RPG&#39;: 251, &#39;Mouse only&#39;: 241, &#39;2D&#39;: 155, &#39;Great Soundtrack&#39;: 139, &#39;Procedural Generation&#39;: 137, &#39;Fantasy&#39;: 134, &#39;Casual&#39;: 90}&quot;</code></pre>
 <pre class="r"><code>build_tag_timeseriesV3 &lt;- function(games, tag_pattern, ref_date,
                                    bin = c(&quot;month&quot;, &quot;year&quot;),
                                    exclude_window_months = 1,
@@ -1330,7 +1332,41 @@ ref_game_SlayTheSpire$name</code></pre>
       t = t_bin
     )
 }</code></pre>
-<pre class="r"><code>ts_slayTheSpire &lt;- build_tag_timeseriesV3(
+<pre class="r"><code>trend_change_test &lt;- function(m, H, M) {
+  b &lt;- coef(m)
+  V &lt;- vcov(m)
+
+  delta &lt;- b[&quot;t:post&quot;]
+  se_delta &lt;- sqrt(V[&quot;t:post&quot;,&quot;t:post&quot;])
+
+  effect &lt;- H * delta
+  se_eff &lt;- H * se_delta
+  ci &lt;- effect + c(-1,1) * 1.96 * se_eff
+
+  list(
+    slope_change = delta,
+    effect_at_H = effect,
+    ci_95 = ci,
+    trend_changed =
+      abs(effect) &gt; M &amp;&amp;
+      (ci[1] &gt; 0 | ci[2] &lt; 0)
+  )
+}</code></pre>
+<pre class="r"><code># ts_slayTheSpire &lt;- build_tag_timeseriesV3(
+#   games = cleaned_steam,
+#   tag_pattern = &quot;Roguelike Deckbuilder&quot;,
+#   ref_date = ref_game_SlayTheSpire$release_date,
+#   bin = &quot;month&quot;,              # months gives more detail
+#   exclude_window_months = 1,  # drop ±1 month around launch
+#   window_months = 84          # ±6 years
+# )
+# 
+# # Piecewise model (pre trend + post jump + slope change)
+# m_slayTheSpire &lt;- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
+# summary(m_slayTheSpire)
+
+
+ts_slayTheSpire &lt;- build_tag_timeseriesV3(
   games = cleaned_steam,
   tag_pattern = &quot;Roguelike Deckbuilder&quot;,
   ref_date = ref_game_SlayTheSpire$release_date,
@@ -1362,6 +1398,100 @@ summary(m_slayTheSpire)</code></pre>
 ## Residual standard error: 2.159 on 154 degrees of freedom
 ## Multiple R-squared:  0.696,  Adjusted R-squared:  0.6901 
 ## F-statistic: 117.5 on 3 and 154 DF,  p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>m &lt;- m_slayTheSpire
+
+b &lt;- coef(m)
+
+slope_pre  &lt;- b[&quot;t&quot;]
+slope_post &lt;- b[&quot;t&quot;] + b[&quot;t:post&quot;]
+delta_slope &lt;- b[&quot;t:post&quot;]
+
+c(slope_pre = slope_pre, slope_post = slope_post, slope_change = delta_slope)</code></pre>
+<pre><code>##         slope_pre.t        slope_post.t slope_change.t:post 
+##         0.006488177         0.166450697         0.159962521</code></pre>
+<pre class="r"><code># horizon: 20 time units after the datapoint
+H &lt;- 6
+
+# minimum meaningful divergence (10% of pre-period SD)
+pre_sd &lt;- sd(ts_slayTheSpire$freq[ts_slayTheSpire$post == 0], na.rm = TRUE)
+M &lt;- 0.10 * pre_sd
+
+res &lt;- trend_change_test(
+  m = m_slayTheSpire,
+  H = H,
+  M = M
+)
+
+res</code></pre>
+<pre><code>## $slope_change
+##    t:post 
+## 0.1599625 
+## 
+## $effect_at_H
+##    t:post 
+## 0.9597751 
+## 
+## $ci_95
+## [1] 0.7795722 1.1399780
+## 
+## $trend_changed
+## [1] TRUE</code></pre>
+<p>#TODO: merge this later, grabbed from Nahuel’s code</p>
+<pre class="r"><code>get_unique_dict_keys &lt;- function(x) {
+  x &lt;- x[x != &quot;[]&quot;]
+  
+  keys_list &lt;- str_extract_all(x, &quot;(?&lt;=&#39;)[^&#39;]+(?=&#39;\\s*:)&quot;)
+  
+  keys &lt;- trimws(unlist(keys_list, use.names = FALSE))
+  keys &lt;- keys[keys != &quot;&quot;]
+  sort(unique(keys))
+}</code></pre>
+<pre class="r"><code>checkIfInfluentialTag &lt;- function(row, df, tag) {
+
+  ts_row &lt;- build_tag_timeseriesV3(
+    games = df,
+    tag_pattern = tag,
+    ref_date = row$release_date,
+    bin = &quot;month&quot;,
+    exclude_window_months = 1,
+    window_months = 84
+  )
+
+  m &lt;- lm(freq ~ t + post + t:post, data = ts_row)
+
+  H &lt;- 6
+  pre_sd &lt;- sd(ts_row$freq[ts_row$post == 0], na.rm = TRUE)
+  M &lt;- 0.10 * pre_sd
+
+  res &lt;- trend_change_test(m = m, H = H, M = M)
+
+  # IMPORTANT: make this return a single TRUE/FALSE.
+  # Adjust this line to match what trend_change_test returns.
+  isTRUE(res) || isTRUE(res$influential) || isTRUE(res$reject)
+}
+
+
+checkIfInfluentialOverall &lt;- function(i,df){
+  row &lt;- df[i, , drop = FALSE]
+  tags &lt;- get_unique_dict_keys(row$tags)
+  if (length(tags) == 0) return(FALSE)
+  for(tag in tags){
+    if(checkIfInfluentialTag(row,df,tag)){
+      return(TRUE)
+    }
+    
+  }
+  FALSE
+}</code></pre>
+<pre class="r"><code># 
+# cleaned_steam$influential &lt;- FALSE  # preallocate
+# 
+# cleaned_steam$influential &lt;- vapply(
+#   seq_len(nrow(popularGames)),
+#   checkIfInfluentialOverall,
+#   logical(1),
+#   df = cleaned_steam
+# )</code></pre>
 <pre class="r"><code>ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = &quot;lm&quot;, se = TRUE, formula = y ~ x, data = subset(ts_slayTheSpire, t &lt; 0)) +
@@ -1561,6 +1691,29 @@ ref_game_BindingOfIsaacRebirth$name</code></pre>
   exclude_window_months = 1,  # drop ±1 month around launch
   window_months = 120         # ±6 years
 )</code></pre>
+<pre class="r"><code># Piecewise model (pre trend + post jump + slope change)
+m_BindingOfIsaacRebirth &lt;- lm(freq ~ t + post + t:post, data = ts_BindingOfIsaacRebirth)
+summary(m_slayTheSpire)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = freq ~ t + post + t:post, data = ts_slayTheSpire)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -5.2112 -0.3671 -0.0735  0.6113 16.1256 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.472503   0.464150   1.018  0.31028    
+## t            0.006488   0.009542   0.680  0.49756    
+## post        -2.083234   0.689968  -3.019  0.00297 ** 
+## t:post       0.159963   0.015323  10.439  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 2.159 on 154 degrees of freedom
+## Multiple R-squared:  0.696,  Adjusted R-squared:  0.6901 
+## F-statistic: 117.5 on 3 and 154 DF,  p-value: &lt; 2.2e-16</code></pre>
 <pre class="r"><code>ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = &quot;lm&quot;, se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaac, t &lt; 0)) +

@@ -88,7 +88,7 @@ The dataset we will be working with contains a total number of 94948 observation
 -   **`num_reviews_recent`**: Number of the reviews made in the last 30 days. [num]
 
 
-```{r steam summary, echo = false}
+```{r steam summary, echo = FALSE}
 summary(steam)
 ```
 

@@ -604,18 +604,6 @@ trend_change_test <- function(m, H, M) {
 
 
 ```{r}
-# ts_slayTheSpire <- build_tag_timeseriesV3(
-#   games = cleaned_steam,
-#   tag_pattern = "Roguelike Deckbuilder",
-#   ref_date = ref_game_SlayTheSpire$release_date,
-#   bin = "month",              # months gives more detail
-#   exclude_window_months = 1,  # drop ±1 month around launch
-#   window_months = 84          # ±6 years
-# )
-# 
-# # Piecewise model (pre trend + post jump + slope change)
-# m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
-# summary(m_slayTheSpire)
 
 
 ts_slayTheSpire <- build_tag_timeseriesV3(
@@ -631,33 +619,23 @@ ts_slayTheSpire <- build_tag_timeseriesV3(
 m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
 summary(m_slayTheSpire)
 
-m <- m_slayTheSpire
 
-b <- coef(m)
-
-slope_pre  <- b["t"]
-slope_post <- b["t"] + b["t:post"]
-delta_slope <- b["t:post"]
-
-c(slope_pre = slope_pre, slope_post = slope_post, slope_change = delta_slope)
 
 
 ```
 ```{r}
-# horizon: 20 time units after the datapoint
-H <- 6
+
 
 # minimum meaningful divergence (10% of pre-period SD)
 pre_sd <- sd(ts_slayTheSpire$freq[ts_slayTheSpire$post == 0], na.rm = TRUE)
-M <- 0.10 * pre_sd
 
 res <- trend_change_test(
   m = m_slayTheSpire,
-  H = H,
-  M = M
+  H = 6,
+  M = 0.10 * pre_sd
 )
 
-res
+res$
 
 ```
 #TODO: merge this later, grabbed from Nahuel's code
@@ -685,45 +663,61 @@ checkIfInfluentialTag <- function(row, df, tag) {
     window_months = 84
   )
 
-  m <- lm(freq ~ t + post + t:post, data = ts_row)
+  # Basic sanity checks
+  if (is.null(ts_row) || nrow(ts_row) < 5) return(FALSE)
+  if (!all(c("freq","t","post") %in% names(ts_row))) return(FALSE)
+
+  # Need enough pre points to compute sd and fit meaningfully
+  pre <- ts_row$freq[ts_row$post == 0]
+  if (sum(!is.na(pre)) < 2) return(FALSE)
+
+  m <- tryCatch(
+    lm(freq ~ t + post + t:post, data = ts_row),
+    error = function(e) NULL
+  )
+  if (is.null(m)) return(FALSE)
 
   H <- 6
-  pre_sd <- sd(ts_row$freq[ts_row$post == 0], na.rm = TRUE)
+  pre_sd <- sd(pre, na.rm = TRUE)
+  if (!is.finite(pre_sd) || pre_sd == 0) return(FALSE)
+
   M <- 0.10 * pre_sd
 
-  res <- trend_change_test(m = m, H = H, M = M)
+  res <- tryCatch(
+    trend_change_test(m = m, H = H, M = M),
+    error = function(e) NULL
+  )
+  if (is.null(res) || is.null(res$trend_changed)) return(FALSE)
 
-  # IMPORTANT: make this return a single TRUE/FALSE.
-  # Adjust this line to match what trend_change_test returns.
-  isTRUE(res) || isTRUE(res$influential) || isTRUE(res$reject)
+  isTRUE(res$trend_changed)   # <- forces TRUE only when exactly TRUE
 }
 
-
-checkIfInfluentialOverall <- function(i,df){
-  row <- df[i, , drop = FALSE]
+checkIfInfluentialOverall <- function(i, popular_df, full_df) {
+  row <- popular_df[i, , drop = FALSE]
   tags <- get_unique_dict_keys(row$tags)
   if (length(tags) == 0) return(FALSE)
-  for(tag in tags){
-    if(checkIfInfluentialTag(row,df,tag)){
-      return(TRUE)
-    }
-    
+
+  for (tag in tags) {
+    if (isTRUE(checkIfInfluentialTag(row, full_df, tag))) return(TRUE)
   }
   FALSE
 }
 ```
 
 
+
 ```{r}
-# 
-# cleaned_steam$influential <- FALSE  # preallocate
-# 
-# cleaned_steam$influential <- vapply(
-#   seq_len(nrow(popularGames)),
-#   checkIfInfluentialOverall,
-#   logical(1),
-#   df = cleaned_steam
-# )
+
+cleaned_steam$influential <- FALSE  # preallocate
+popularGames <- cleaned_steam[ cleaned_steam$estimated_owners_min >= 2000000,]
+
+popularGames$influential <- vapply(
+  seq_len(nrow(popularGames)),
+  checkIfInfluentialOverall,
+  logical(1),
+  popular_df = popularGames,
+  full_df = cleaned_steam
+)
 ```
 
 ```{r}
