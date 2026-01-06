@@ -59,6 +59,7 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(purrr)
+
 # Dates & time
 library(lubridate)
 
@@ -72,7 +73,6 @@ library(arulesViz)
 
 # Tidy evaluation (used in helpers)
 library(rlang)
-
 
 steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.strings = FALSE)
 ```
@@ -192,6 +192,332 @@ LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha f
 str(cleaned_steam)
 summary(cleaned_steam)
 ```
+
+# Exploratory Data Analysis
+
+```{r, echo = FALSE}
+#Genres
+action_genre <- c(
+  # Action
+  "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
+  "Arcade", "Immersive Sim", "Metroidvania", "Musou", "Sandbox", "Survival",
+  "Survival Horror", "MOBA")
+shooter_genre<- c(
+  # Shooter
+  "Arena Shooter", "Battle Royale", "Boomer Shooter", "Bullet Hell", "Extraction Shooter",
+  "FPS", "Hero Shooter", "Looter Shooter", "On-Rails Shooter", "Third-Person Shooter",
+  "Top-Down Shooter", "Twin Stick Shooter", "Vehicular Combat", "Naval Combat",
+  "Combat Racing")
+roguelike_genre <- c(
+  # Roguelike
+  "Rogue-like", "Rogue-lite", "Roguevania", "Traditional Roguelike",
+  "Roguelike Deckbuilder", "Mystery Dungeon")
+RPG_genre <- c(
+  # RPG
+  "RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Otome", 
+  "Dating Sim", "Visual Novel", "Interactive Fiction", "Text-Based", 
+  "MMORPG", "MMO")
+strategy_genre <- c(
+  # Strategy
+  "Strategy", "4X", "Grand Strategy", "RTS", "Real Time Tactics",
+  "Turn-Based Strategy", "Tactical", "Tabletop", "Wargame", "Political Sim",
+  "God Game", "Management", "Colony Sim", "City Builder", "Shop Keeper",
+  "Tower Defense", "Creature Collector")
+simulation_genre <- c(
+  # Simulation
+  "Simulation", "Automobile Sim", "Farming Sim", "Medical Sim",
+  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim")
+sport_genre <- c(
+  # Sports
+  "Sports", "Baseball", "Basketball", "Bowling", "Boxing", "BMX", "Cricket",
+  "Football", "Football (American)", "Football (Soccer)", "Soccer",
+  "Golf", "Hockey", "Mini Golf", "Motocross", "Pool", "Racing", "Rugby",
+  "Skateboarding", "Skating", "Skiing", "Snowboarding", "Snooker", "Tennis",
+  "Volleyball", "Wrestling", "Driving")
+fighting_genre <- c(
+  # Fighting
+  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like")
+platformer_genre <- c(
+  # Platformers & runners 
+  "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
+  "Runner", "Open World Survival Craft")
+tabletop_genre <- c(
+  # Puzzle, logic, board & card games
+  "Puzzle", "Puzzle-Platformer", "Logic", "Mahjong",
+  "Match 3", "Tile-Matching", "Sokoban", "Solitaire", "Trivia",
+  "Board Game", "Card Game", "Trading Card Game", "Hidden Object",
+  "Escape Room", "Chess", "Word Game", "Point & Click")
+casual_genre <- c(
+  #  Casual / idle
+  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball")
+horror_genre <- c(
+  # Horror
+  "Horror", "Psychological Horror")
+music_genre <- c(
+  # Music & rhythm
+  "Music", "Rhythm", "Typing")
+walking_sim_genre <- c(
+  # Walking
+  "Walking Simulator", "FMV")
+
+genres <- list(
+  action = action_genre,
+  shooter = shooter_genre,
+  roguelike = roguelike_genre,
+  RPG = RPG_genre,
+  strategy = strategy_genre,
+  simulation = simulation_genre,
+  sport = sport_genre,
+  fighting = fighting_genre,
+  platformer = platformer_genre,
+  tabletop = tabletop_genre,
+  casual = casual_genre,
+  horror = horror_genre,
+  music = music_genre,
+  walking_sim = walking_sim_genre
+)
+```
+
+```{r, echo = FALSE}
+make_group_flag <- function(data, values, group_name,
+                            categories_col = "categories",
+                            genres_col = "genres",
+                            tags_col = "tags") {
+
+  parse_list_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+    vals[vals != ""]
+  }
+
+  parse_dict_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]" || x == "" || x == "{}") return(character(0))
+
+    m <- gregexpr("(['\"])([^'\"]+)\\1\\s*:", x, perl = TRUE)
+    pieces <- regmatches(x, m)[[1]]
+    if (length(pieces) == 0) return(character(0))
+
+    keys <- sub("^(['\"])([^'\"]+)\\1\\s*:$", "\\2", pieces, perl = TRUE)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+
+  values_set <- trimws(unique(values))
+
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    cats <- parse_list_row(data[[categories_col]][i])
+    gens <- parse_list_row(data[[genres_col]][i])
+    tgs  <- parse_dict_row(data[[tags_col]][i])
+    tokens <- unique(c(cats, gens, tgs))
+    tokens
+  })
+
+  flag <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
+
+  data[[group_name]] <- flag
+
+  data
+}
+```
+
+```{r, echo = FALSE}
+
+file <- file.path("data", "genre_group_coded_steam.rds")
+
+if (file.exists(file)) {
+  genre_group_coded_steam <- readRDS(file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+  genre_group_coded_steam <- cleaned_steam
+
+  for (g_name in names(genres)) {
+    genre_group_coded_steam <- make_group_flag(
+      genre_group_coded_steam, 
+      genres[[g_name]], 
+      g_name
+    )
+  }
+  
+  genre_group_coded_steam <- genre_group_coded_steam %>% select(-tags, -categories, -genres)
+  
+  saveRDS(genre_group_coded_steam, file)
+}
+```
+
+```{r}
+# 1. Prepare the trend data
+genre_trend_df <- genre_group_coded_steam %>%
+  # Extract year and handle potential date formats
+  mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
+  # Filter for realistic timeframe
+  filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
+  # Select the release year and the genre group columns we just created
+  select(release_year, all_of(names(genres))) %>%
+  # Reshape to long format
+  pivot_longer(cols = -release_year, names_to = "Genre", values_to = "HasGenre") %>%
+  # Count occurrences per year
+  filter(HasGenre == TRUE) %>%
+  group_by(release_year, Genre) %>%
+  summarise(Count = n(), .groups = 'drop')
+```
+
+```{r}
+yearly_baseline <- genre_group_coded_steam %>%
+  mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
+  filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
+  group_by(release_year) %>%
+  summarise(Total_Games_Yearly = n(), .groups = 'drop')
+```
+
+```{r}
+market_share <- genre_trend_df %>%
+  left_join(yearly_baseline, by = "release_year") %>%
+  mutate(Market_Share = (Count / Total_Games_Yearly) * 100)
+```
+
+```{r}
+genre_grow <- market_share %>%
+  arrange(Genre, release_year) %>% 
+  group_by(Genre) %>%
+  mutate(
+    yearly_change = Market_Share - lag(Market_Share),
+    abs_yearly_change = abs(yearly_change)
+  ) %>%
+  summarize(
+    Total_Volatility = sum(abs_yearly_change, na.rm = TRUE),
+    Net_Growth = last(Market_Share) - first(Market_Share)
+  ) %>%
+  arrange(desc(Total_Volatility))
+
+print(genre_grow)
+```
+```{r}
+ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "salmon"), 
+                    labels = c("Negative", "Positive"), 
+                    name = "Growth Type") +
+  labs(
+    title = "Top 5 and Bottom 5 Genres by Net Growth",
+    subtitle = "Comparing highest vs. lowest performance",
+    x = "Genre",
+    y = "Net Growth (%)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(relative_growth_df %>% filter(Genre %in% positive_genres), 
+       aes(x = release_year, y = Market_Share, color = Genre)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 1.5) +
+  theme_minimal() +
+  labs(
+    title = "Market Share Trend: Positive Growth Genres",
+    subtitle = "Genres that increased their market footprint",
+    x = "Year of Release",
+    y = "Market Share (%)",
+    color = "Genre"
+  ) +
+  scale_x_continuous(breaks = seq(2010, 2024, by = 2))
+```
+
+```{r}
+ggplot(relative_growth_df %>% filter(Genre %in% negative_genres), 
+       aes(x = release_year, y = Market_Share, color = Genre)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 1.5) +
+  theme_minimal() +
+  labs(
+    title = "Market Share Trend: Negative Growth Genres",
+    subtitle = "Genres that decreased their market footprint",
+    x = "Year of Release",
+    y = "Market Share (%)",
+    color = "Genre"
+  ) +
+  scale_x_continuous(breaks = seq(2010, 2024, by = 2))
+```
+```{r}
+# 1. Filter for games that have actually been played
+played_games <- genre_group_coded_steam %>%
+  filter(average_playtime_forever > 0)
+```
+
+```{r}
+genre_playtime_stats <- played_games %>%
+  # Select playtime and the specific genre group columns created earlier
+  select(average_playtime_forever, all_of(names(genres))) %>%
+  
+  # Reshape to long format: one row per (Game, Genre Group)
+  pivot_longer(
+    cols = all_of(names(genres)), 
+    names_to = "Genre_Group", 
+    values_to = "HasGenre"
+  ) %>%
+  
+  # Keep only the rows where the game belongs to that genre group
+  filter(HasGenre == TRUE) %>%
+  
+  # Group by the custom genre groups and calculate stats
+  group_by(Genre_Group) %>%
+  summarise(
+    Mean_Playtime = mean(average_playtime_forever, na.rm = TRUE),
+    Median_Playtime = median(average_playtime_forever, na.rm = TRUE),
+    Total_Games = n(),
+    .groups = 'drop'
+  ) %>%
+  
+  # Sort by Median Playtime (usually better for playtime due to outliers)
+  arrange(desc(Median_Playtime))
+```
+
+```{r}
+# 3. View the summary table
+print(genre_playtime_stats)
+```
+
+```{r}
+nrow(played_games)
+```
+
+```{r}
+# 4. Visualize the results
+# We use Median here as it's more representative of the "typical" player experience
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = Median_Playtime)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Typical Playtime by Genre Group",
+    subtitle = "Median Playtime (minutes) for games with recorded activity",
+    x = "Genre Group",
+    y = "Median Playtime (Minutes)"
+  ) +
+  geom_text(aes(label = round(Median_Playtime, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+
+```{r}
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Mean_Playtime)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Typical Playtime by Genre Group",
+    subtitle = "Median Playtime (minutes) for games with recorded activity",
+    x = "Genre Group",
+    y = "Median Playtime (Minutes)"
+  ) +
+  geom_text(aes(label = round(Mean_Playtime, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+
+
 
 
 # Requeriments for Successful Indie Games
