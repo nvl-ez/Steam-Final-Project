@@ -348,7 +348,7 @@ if (file.exists(file)) {
 }
 ```
 
-```{r}
+```{r, echo = FALSE}
 # 1. Prepare the trend data
 genre_trend_df <- genre_group_coded_steam %>%
   # Extract year and handle potential date formats
@@ -365,7 +365,7 @@ genre_trend_df <- genre_group_coded_steam %>%
   summarise(Count = n(), .groups = 'drop')
 ```
 
-```{r}
+```{r, echo = FALSE}
 yearly_baseline <- genre_group_coded_steam %>%
   mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
   filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
@@ -373,13 +373,13 @@ yearly_baseline <- genre_group_coded_steam %>%
   summarise(Total_Games_Yearly = n(), .groups = 'drop')
 ```
 
-```{r}
+```{r, echo = FALSE}
 market_share <- genre_trend_df %>%
   left_join(yearly_baseline, by = "release_year") %>%
   mutate(Market_Share = (Count / Total_Games_Yearly) * 100)
 ```
 
-```{r}
+```{r, echo = FALSE}
 genre_grow <- market_share %>%
   arrange(Genre, release_year) %>% 
   group_by(Genre) %>%
@@ -395,7 +395,8 @@ genre_grow <- market_share %>%
 
 print(genre_grow)
 ```
-```{r}
+
+```{r, echo = FALSE}
 ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
   geom_col() +
   coord_flip() +
@@ -411,7 +412,7 @@ ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Ne
   theme_minimal()
 ```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(relative_growth_df %>% filter(Genre %in% positive_genres), 
        aes(x = release_year, y = Market_Share, color = Genre)) +
   geom_line(linewidth = 1.2, alpha = 0.8) +
@@ -427,7 +428,7 @@ ggplot(relative_growth_df %>% filter(Genre %in% positive_genres),
   scale_x_continuous(breaks = seq(2010, 2024, by = 2))
 ```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(relative_growth_df %>% filter(Genre %in% negative_genres), 
        aes(x = release_year, y = Market_Share, color = Genre)) +
   geom_line(linewidth = 1.2, alpha = 0.8) +
@@ -442,13 +443,14 @@ ggplot(relative_growth_df %>% filter(Genre %in% negative_genres),
   ) +
   scale_x_continuous(breaks = seq(2010, 2024, by = 2))
 ```
-```{r}
+
+```{r, echo = FALSE}
 # 1. Filter for games that have actually been played
 played_games <- genre_group_coded_steam %>%
   filter(average_playtime_forever > 0)
 ```
 
-```{r}
+```{r, echo = FALSE}
 genre_playtime_stats <- played_games %>%
   # Select playtime and the specific genre group columns created earlier
   select(average_playtime_forever, all_of(names(genres))) %>%
@@ -476,16 +478,16 @@ genre_playtime_stats <- played_games %>%
   arrange(desc(Median_Playtime))
 ```
 
-```{r}
+```{r, echo = FALSE}
 # 3. View the summary table
 print(genre_playtime_stats)
 ```
 
-```{r}
+```{r, echo = FALSE}
 nrow(played_games)
 ```
 
-```{r}
+```{r, echo = FALSE}
 # 4. Visualize the results
 # We use Median here as it's more representative of the "typical" player experience
 ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = Median_Playtime)) +
@@ -502,7 +504,7 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = 
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Mean_Playtime)) +
   geom_col(fill = "steelblue") + 
   coord_flip() +
