@@ -73,6 +73,8 @@ library(arulesViz)
 
 # Tidy evaluation (used in helpers)
 library(rlang)
+library(knitr)
+library(tibble)
 
 steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.strings = FALSE)
 ```
@@ -522,7 +524,17 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Me
 
 
 
-# Requeriments for Successful Indie Games
+# Commonalities among successful indie games
+
+```{r commonalities_setup, include=FALSE}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
 
 Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
 
