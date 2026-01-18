@@ -85,6 +85,8 @@ steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.
 # **IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
 
 # **NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
+
+#TODO: Xiao arregla el error de `relative_growth_df`
 ```
 
 ## Explanation of the Attributes
@@ -525,8 +527,10 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Me
 
 
 # Commonalities among successful indie games
-
 ```{r commonalities_setup, include=FALSE}
+#-------------------------------------------------
+# Funcion helpers
+#-------------------------------------------------
 get_unique_dict_keys <- function(x) {
   x <- x[x != "[]"]
   keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
@@ -534,12 +538,7 @@ get_unique_dict_keys <- function(x) {
   keys <- keys[keys != ""]
   sort(unique(keys))
 }
-```
 
-Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
-
-```{r, echo = FALSE}
-# Funcion helper 
 get_unique_list_values <- function(x) {
   x <- x[x != "[]"]
   x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
@@ -552,122 +551,10 @@ get_unique_list_values <- function(x) {
   
   sort(unique(vals))
 }
-```
 
-Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
-```{r, echo = FALSE}
-get_unique_dict_keys <- function(x) {
-  x <- x[x != "[]"]
-  
-  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
-  
-  keys <- trimws(unlist(keys_list, use.names = FALSE))
-  keys <- keys[keys != ""]
-  sort(unique(keys))
-}
-```
-
-
-## Obtain Unique values for different columns
-```{r, echo = FALSE}
-steam_categories <- get_unique_list_values(cleaned_steam$categories)
-steam_categories
-```
-```{r, echo = FALSE}
-steam_genres <- get_unique_list_values(cleaned_steam$genres)
-steam_genres
-```
-
-
-```{r, echo = FALSE}
-steam_tags <- get_unique_dict_keys(cleaned_steam$tags)
-steam_tags
-```
-
-From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
-```{r, echo = FALSE}
-#Genres
-action_genre <- c(
-  # Action
-  "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
-  "Arcade", "Immersive Sim", "Metroidvania", "Musou", "Sandbox", "Survival",
-  "Survival Horror", "MOBA")
-shooter_genre<- c(
-  # Shooter
-  "Arena Shooter", "Battle Royale", "Boomer Shooter", "Bullet Hell", "Extraction Shooter",
-  "FPS", "Hero Shooter", "Looter Shooter", "On-Rails Shooter", "Third-Person Shooter",
-  "Top-Down Shooter", "Twin Stick Shooter", "Vehicular Combat", "Naval Combat",
-  "Combat Racing")
-roguelike_genre <- c(
-  # Roguelike
-  "Rogue-like", "Rogue-lite", "Roguevania", "Traditional Roguelike",
-  "Roguelike Deckbuilder", "Mystery Dungeon")
-RPG_genre <- c(
-  # RPG
-  "RPG", "JRPG", "CRPG", "Strategy RPG", "Tactical RPG", "Otome", 
-  "Dating Sim", "Visual Novel", "Interactive Fiction", "Text-Based", 
-  "MMORPG", "MMO")
-strategy_genre <- c(
-  # Strategy
-  "Strategy", "4X", "Grand Strategy", "RTS", "Real Time Tactics",
-  "Turn-Based Strategy", "Tactical", "Tabletop", "Wargame", "Political Sim",
-  "God Game", "Management", "Colony Sim", "City Builder", "Shop Keeper",
-  "Tower Defense", "Creature Collector")
-simulation_genre <- c(
-  # Simulation
-  "Simulation", "Automobile Sim", "Farming Sim", "Medical Sim",
-  "Hobby Sim", "Life Sim", "Space Sim", "Outbreak Sim")
-sport_genre <- c(
-  # Sports
-  "Sports", "Baseball", "Basketball", "Bowling", "Boxing", "BMX", "Cricket",
-  "Football", "Football (American)", "Football (Soccer)", "Soccer",
-  "Golf", "Hockey", "Mini Golf", "Motocross", "Pool", "Racing", "Rugby",
-  "Skateboarding", "Skating", "Skiing", "Snowboarding", "Snooker", "Tennis",
-  "Volleyball", "Wrestling", "Driving")
-fighting_genre <- c(
-  # Fighting
-  "2D Fighter", "3D Fighter", "Fighting", "Hack and Slash", "Souls-like")
-platformer_genre <- c(
-  # Platformers & runners 
-  "Platformer", "2D Platformer", "3D Platformer", "Precision Platformer",
-  "Runner", "Open World Survival Craft")
-tabletop_genre <- c(
-  # Puzzle, logic, board & card games
-  "Puzzle", "Puzzle-Platformer", "Logic", "Mahjong",
-  "Match 3", "Tile-Matching", "Sokoban", "Solitaire", "Trivia",
-  "Board Game", "Card Game", "Trading Card Game", "Hidden Object",
-  "Escape Room", "Chess", "Word Game", "Point & Click")
-casual_genre <- c(
-  #  Casual / idle
-  "Casual", "Idler", "Clicker", "Auto Battler", "Party Game", "Pinball")
-horror_genre <- c(
-  # Horror
-  "Horror", "Psychological Horror")
-music_genre <- c(
-  # Music & rhythm
-  "Music", "Rhythm", "Typing")
-walking_sim_genre <- c(
-  # Walking
-  "Walking Simulator", "FMV")
-
-genres <- list(
-  action = action_genre,
-  shooter = shooter_genre,
-  roguelike = roguelike_genre,
-  RPG = RPG_genre,
-  strategy = strategy_genre,
-  simulation = simulation_genre,
-  sport = sport_genre,
-  fighting = fighting_genre,
-  platformer = platformer_genre,
-  tabletop = tabletop_genre,
-  casual = casual_genre,
-  horror = horror_genre,
-  music = music_genre,
-  walking_sim = walking_sim_genre
-)
-
-
+#-------------------------------------------------
+# Segment remaining steam attributes:
+#-------------------------------------------------
 #Mechanics
 resource_management_mechanic <- c(
   # Economy, building, resources
@@ -781,9 +668,19 @@ characteristics <- list(
   esports = esports_characteristic
 )
 ```
+Indie game development is high-risk: budgets are limited, marketing reach is uncertain, and audience discovery can be unpredictable. This section explores commonalities across successful indie games, with two practical goals:
+* **Understand market audience:** identify what combinations of genres/mechanics tend to co-occur among games that reach larger audiences.
+* **Reduce risk for game-making:** extract patterns that can guide design decisions without prescribing a single “correct” formula.
 
 
-Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
+We focus on four questions:
+* **Does genre matter?**
+* **Do mechanics matter (especially in combination with genre)?**
+* **Do game characteristics matter (e.g., camera, player modes, VR)?**
+* **Does pricing matter (relationship with owners)?**
+
+## Selecting indie games
+Steam has done the hard work for us by including “Indie” as a genre/tag (and related tags such as “Crowdfunded” / “Kickstarter”). Given that these tags have been assigned by users world-wide, we can agree on these tags representing widely-considered indie games. We filter the dataset to games containing any of these signals in Genres, Tags or Categories.
 ```{r, echo = FALSE}
 indie <- c("Crowdfunded", "Kickstarter", "Indie")
 indie_pattern <- str_c(indie, collapse = "|")
@@ -797,66 +694,200 @@ indie_games <- steam %>%
   )
 ```
 
-Prepare data for determining successful games
+## Determining “successful” indie games
+Determining “successful” indie games
+
+“Success” is not directly labeled in the dataset, so we build an operational proxy based on market and engagement signals. The main goal of this step is to isolate a subset of indie games that consistently perform better than the rest, so that later sections (association rules and plots) focus on patterns that appear among higher-impact titles.
+
+### Clustering approach
+We cluster indie games using a set of numeric variables that capture outcomes and engagement (e.g., recommendations, reviews, playtime, peak CCU, owners/revenue estimates, price, and platform availability). Before fixing the final configuration, we experimented with multiple numbers of clusters:
+* **2 clusters** (attempting to represent successful vs not successful)
+* **3 clusters** (attempting to represent massively successful, successful and not successful)
+* **4 clusters**
+* **5 clusters**
+* **10 clusters**
+
+The best segmentation for interpretability and separation was obtained with 3 clusters.
+
+In our dataset, representative examples of these mid/high clusters included games such as Deceit, Graveyard Keeper, Unturned (mid-tier), and Stardew Valley, Subnautica, Terraria (top-tier). These examples illustrate how the clustering captures meaningful outcome tiers rather than arbitrary partitions.
+
+We implement the final clustering using k-means with k = 3 on standardized variables.
 ```{r, echo = FALSE}
-indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
+indie_games_data <- indie_games %>%
+  select(
+    appid, name, price, dlc_count, windows, mac, linux,
+    achievements, recommendations, supported_languages,
+    positive, negative, estimated_owners,
+    average_playtime_forever, median_playtime_forever,
+    peak_ccu, pct_pos_total, num_reviews_total
+  )
 
-
-
-#transform suported languages into count
 add_column_count <- function(df, column, new_col) {
-  column_quo <- enquo(column)
-
+  column_quo <- rlang::enquo(column)
   df %>%
     mutate(
-      "{new_col}" := case_when(
+      "{new_col}" := dplyr::case_when(
         !!column_quo == "[]" ~ 0L,
         TRUE ~ str_count(!!column_quo, "'") %/% 2L
       )
     )
 }
 
-add_range_minmax <- function(df, column, min_column, max_column) {
-  column_quo <- enquo(column)
-
-  df %>%
-    mutate(
-      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
-      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
-    )
-}
-
-#Limpiar esta linea con los cambios de arturo TODO
-indie_games_data <- indie_games_data %>% 
-  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
-  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
-  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
-  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
-  mutate(linux = as.integer(linux == "True")) %>% # parse logical to int
+indie_games_data <- indie_games_data %>%
+  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>%
+  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>%
+  mutate(windows = as.integer(windows == "True")) %>%
+  mutate(mac = as.integer(mac == "True")) %>%
+  mutate(linux = as.integer(linux == "True")) %>%
   select(-estimated_owners)
-```
 
-Cluster the data:
-```{r, echo = FALSE}
-indie_games_cluster <- indie_games_data %>% 
-  add_column_count(supported_languages, "languages_count") %>% # Count languages
+indie_games_cluster <- indie_games_data %>%
+  add_column_count(supported_languages, "languages_count") %>%
   select(-appid, -name, -supported_languages)
 
-
-  indie_games_cluster <- indie_games_cluster %>% mutate( # Avoid scaling binary columns
+# Standardize continuous numeric features
+indie_games_cluster <- indie_games_cluster %>%
+  mutate(
     across(
       where(is.numeric) & !all_of(c("windows", "mac", "linux")),
       ~ as.numeric(scale(.))
     )
   )
-  
-  km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
-  indie_games_data$success_cluster<- km2$cluster
-  indie_games$success_cluster<- km2$cluster
-  colnames(indie_games_data)
+
+# Final clustering choice: k = 3
+km3 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
+indie_games_data$success_cluster <- km3$cluster
+
+# Identify which variable best separates clusters (highest ANOVA F-statistic)
+vars <- c(
+  "price", "dlc_count", "windows", "mac", "linux",
+  "achievements", "recommendations",
+  "positive", "negative",
+  "average_playtime_forever", "median_playtime_forever",
+  "peak_ccu",
+  "pct_pos_total", "num_reviews_total",
+  "estimated_owners_min", "estimated_owners_max",
+  "estimated_revenue"
+)
+
+f_stats <- purrr::map_dbl(vars, function(v) {
+  form <- as.formula(paste(v, "~ success_cluster"))
+  aov_res <- aov(form, data = indie_games_data)
+  summary(aov_res)[[1]][["F value"]][1]
+})
+
+most_discriminative_var <- vars[which.max(f_stats)]
+
+cluster_summary <- indie_games_data %>%
+  group_by(success_cluster) %>%
+  summarise(
+    mean_val = mean(as.numeric(.data[[most_discriminative_var]]), na.rm = TRUE),
+    median_val = median(as.numeric(.data[[most_discriminative_var]]), na.rm = TRUE),
+    n_games = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(mean_val)
+
+# Assign human-readable tier labels based on the mean of the discriminant variable
+cluster_summary <- cluster_summary %>%
+  mutate(tier = c("Unsuccessful", "Somewhat successful", "Highly successful"))
+
+cluster_labels <- setNames(cluster_summary$tier, cluster_summary$success_cluster)
+
+# Define “successful” as the upper two clusters (mid + top tiers)
+top2_clusters <- cluster_summary %>%
+  slice_tail(n = 2) %>%
+  pull(success_cluster)
+
+indie_games <- indie_games %>%
+  mutate(success_cluster = km3$cluster) %>%
+  mutate(successful = success_cluster %in% top2_clusters) %>%
+  select(-success_cluster)
+
+success_n <- sum(indie_games$successful, na.rm = TRUE)
+success_rate <- success_n / nrow(indie_games)
 ```
 
+Using this proxy, `r scales::comma(success_n)` games are labeled successful (`r scales::percent(success_rate, accuracy = 0.1)` of indie games).
 
+### Validation: do clusters separate meaningfully?
+Because clustering is unsupervised, we validate quality using a simple but practical hypothesis:
+*If the most discriminant variable is unable to separate the clusters, then the clustering is likely not meaningful.*
+We therefore compute the variable that best differentiates the clusters (highest ANOVA F-statistic) and verify that it produces a clear separation across groups.
+
+In our case, the most discriminant variable is `r most_discriminative_var` and it produces a clean ordering between the three clusters, which supports using this partition in the rest of the report.
+
+As an additional sanity check, we compute a global silhouette score on a random sample of games in the standardized feature space. Silhouette values closer to 1 indicate well-separated clusters, values near 0 indicate overlap, and negative values suggest poor assignments.
+```{r, echo = TRUE}
+n_all <- nrow(indie_games_cluster)
+idx <- sample(seq_len(n_all), size = min(5000, n_all))
+
+x_s <- as.matrix(indie_games_cluster[idx, , drop = FALSE])
+cl_s <- km3$cluster[idx]
+
+# Euclidean distance on standardized features
+D <- dist(x_s)
+
+sil <- cluster::silhouette(cl_s, D)
+silhouette_avg <- mean(sil[, "sil_width"])
+```
+The average silhouette score on the sample is `r round(silhouette_avg, 3)`.
+
+### Cluster interpretation
+The figure below summarizes the mean and median values of the discriminant variable (`r most_discriminative_var`) across clusters, alongside the number of games per tier.
+
+In our run, the discriminant variable is `r most_discriminative_var`, which acts as a strong quality/visibility signal: the unsuccessful long-tail cluster concentrates near the lowest values, while the two top-tier cluster achieves the highest values, separating games with limited traction from games with stable success.
+```{r}
+# Plot the cluster summary (mean + median of the most discriminant variable)
+cluster_summary_long <- cluster_summary %>%
+  select(success_cluster, tier, mean_val, median_val, n_games) %>%
+  tidyr::pivot_longer(
+    cols = c(mean_val, median_val),
+    names_to = "statistic",
+    values_to = "value"
+  ) %>%
+  mutate(
+    statistic = dplyr::recode(statistic, mean_val = "Mean", median_val = "Median"),
+    cluster = paste0("Cluster ", success_cluster, " — ", tier)
+  )
+
+cluster_summary_long %>%
+  ggplot(aes(x = reorder(cluster, value), y = value, shape = statistic, group = statistic)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_text(
+    data = cluster_summary %>%
+      mutate(cluster = paste0("Cluster ", success_cluster, " — ", tier)),
+    aes(x = reorder(cluster, mean_val), y = mean_val, label = paste0("n=", n_games)),
+    inherit.aes = FALSE,
+    vjust = -0.8,
+    size = 3
+  ) +
+  scale_y_continuous(breaks = pretty_breaks(), expand = expansion(mult = c(0.05, 0.18))) +
+  labs(
+    title = paste("Cluster summary using", most_discriminative_var),
+    subtitle = "Points show mean and median of the most discriminant variable per cluster",
+    x = NULL,
+    y = paste("Value of", most_discriminative_var)
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 15, hjust = 1))
+```
+A key takeaway from the cluster sizes is that the distribution is highly imbalanced: a large share of games are concentrated in the lower-to-mid tiers, while the top tier contains only a small number of games. In this run, the lowest tier accounts for `r scales::percent(cluster_summary$prop[1], accuracy = 0.1)`, whereas the highest tier represents only `r scales::percent(tail(cluster_summary$prop, 1), accuracy = 0.1)` of indie games.
+```{r}
+# Plot number of games per cluster (count distribution)
+cluster_summary %>%
+  mutate(cluster = paste0("Cluster ", success_cluster, " — ", tier)) %>%
+  ggplot(aes(x = reorder(cluster, n_games), y = n_games)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Number of games per cluster",
+    x = NULL,
+    y = "Count of games"
+  ) +
+  theme_minimal()
+```
 
 
 
