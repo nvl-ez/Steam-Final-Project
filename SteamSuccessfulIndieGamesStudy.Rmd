@@ -888,8 +888,168 @@ cluster_summary %>%
   ) +
   theme_minimal()
 ```
+Since the clusters are interpretable and separable (both visually and by the discriminant variable test), we use them to define a successful subset and proceed with pattern mining in the next sections.
 
+## Genre study
+Steam genre labels are sometimes inconsistent, so we use a grouped genre taxonomy created for this project (e.g., action, RPG, strategy, platformer, etc.). Each successful game is mapped into one or more of these grouped genres using its Genres/Tags/Categories. The Genres have been described in a previous section of the document. 
 
+Before adopting this approach, we initially attempted to mine association rules directly predicting success, by fixing the right-hand side of the rules to `successful = TRUE`.
+
+However, this produced obscure and highly specific combinations with limited generality: many rules were driven by niche tag mixes or small subsets of games, and they did not reflect the kinds of genre patterns seen in widely recognized successful indie titles.
+
+For that reason, we switched to a more interpretable strategy: First filter the dataset to successful indie games, and then mine frequent itemsets (genre combinations) with sufficient support inside this subset.
+
+This approach still answers our question: *Amongng successful games, what genre combinations are most common?*
+```{r, echo = FALSE}
+# --- Helper functions (project-defined) ---
+make_value_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
+  parse_list_row <- function(x) {
+    if (x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",")[[1]])
+    vals[vals != ""]
+  }
+  parse_dict_row <- function(x) {
+    if (x == "[]" || x == "") return(character(0))
+    m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
+    keys <- regmatches(x, m)[[1]]
+    if (length(keys) == 0) return(character(0))
+    keys <- gsub("^'|'$", "", keys)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    unique(c(
+      parse_list_row(data[[categories_col]][i]),
+      parse_list_row(data[[genres_col]][i]),
+      parse_dict_row(data[[tags_col]][i])
+    ))
+  })
+  for (val in values) {
+    data[[val]] <- vapply(tokens_list, function(tokens) val %in% tokens, logical(1))
+  }
+  data
+}
+
+make_group_flag <- function(data, values, group_name,
+                            categories_col = "categories",
+                            genres_col = "genres",
+                            tags_col = "tags") {
+  parse_list_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+    vals[vals != ""]
+  }
+  parse_dict_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]" || x == "" || x == "{}") return(character(0))
+    m <- gregexpr("(['\"])([^'\"]+)\\1\\s*:", x, perl = TRUE)
+    pieces <- regmatches(x, m)[[1]]
+    if (length(pieces) == 0) return(character(0))
+    keys <- sub("^(['\"])([^'\"]+)\\1\\s*:$", "\\2", pieces, perl = TRUE)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+  values_set <- trimws(unique(values))
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    unique(c(
+      parse_list_row(data[[categories_col]][i]),
+      parse_list_row(data[[genres_col]][i]),
+      parse_dict_row(data[[tags_col]][i])
+    ))
+  })
+  data[[group_name]] <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
+  data
+}
+
+# Prepare attributes for successful games
+indie_games_attributes <- indie_games %>% select(tags, categories, genres, successful)
+
+successful_indie_games_attributes <- indie_games_attributes %>%
+  filter(successful == TRUE) %>%
+  select(-successful)
+
+# Generate or load Genres dataset (cached to disk)
+out_file <- file.path("data", "indie_games_genre.rds")
+
+if (file.exists(out_file)) {
+  indie_games_genre <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_genre <- successful_indie_games_attributes
+  for (nm in names(genres)) {
+    indie_games_genre <- make_group_flag(
+      data = indie_games_genre,
+      values = genres[[nm]],
+      group_name = nm
+    )
+  }
+  indie_games_genre <- indie_games_genre %>% select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_genre, out_file)
+}
+
+trans_indie_games_genre <- as(indie_games_genre, "transactions")
+
+# Frequent itemsets and top table
+genre_itemsets <- eclat(trans_indie_games_genre, parameter = list(support = 0.10, minlen = 2, maxlen = 4))
+genre_top <- head(sort(genre_itemsets, by = "support"), 15)
+genre_df <- as(genre_top, "data.frame")
+
+# Genre counts
+genre_counts <- indie_games_genre %>%
+  pivot_longer(cols = everything(), names_to = "genre", values_to = "has") %>%
+  group_by(genre) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_genre <- genre_counts$genre[1]
+most_common_genre_n <- genre_counts$count[1]
+```
+### Most common genre combinations (frequent itemsets)
+The table below lists the most frequent genre combinations among successful games (support = proportion of successful games containing that combination).
+```{r}
+genre_top <- head(sort(genre_itemsets, by = "support"), 30)
+genre_df  <- as(genre_top, "data.frame")
+
+ggplot(genre_df, aes(x = reorder(items, support), y = support)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top genre combinations (support)",
+    x = NULL,
+    y = "Support"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))
+```
+### Genre prevalence
+```{r}
+genre_counts %>%
+  mutate(genre = reorder(genre, count)) %>%
+  ggplot(aes(x = genre, y = count)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Successful indie games — grouped genre counts",
+    x = NULL,
+    y = "Number of games"
+  ) +
+  theme_minimal()
+```
+### Conclussions from genres
+The grouped genre counts show a highly concentrated distribution: successful indie games most frequently fall under action and casual, followed by a second tier including RPG, tabletop/puzzle, strategy, and simulation. This suggests that, within the successful segment, many games belong to genres that are either broad and audience-friendly (action/casual), or built around deep progression and replayability (RPG/strategy/simulation/tabletop).
+
+Looking at frequent genre combinations (Eclat), the strongest result is the pairing {action, casual}, which appears in roughly one quarter of successful games. More generally, casual acts as a “bridge” genre: it appears in many of the top combinations (e.g., tabletop + casual, simulation + casual, strategy + casual, and RPG + casual). This indicates that many successful indie games mix a core genre identity with accessible design traits (short sessions or low entry difficulty).
+
+The second major pattern is that action combines well with several popular genres: action + RPG, action + simulation, action + strategy, action + shooter, and action + platformer all appear as frequent itemsets. This highlights a typical indie design strategy: start from a strong core action loop and enrich it with complementary systems such as progression (RPG), management (simulation/strategy), or movement challenges (platformer).
+
+## Mechanics study 
 
 # Can a single game have enough influence to make other games have its tag?
 
