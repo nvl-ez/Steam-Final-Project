@@ -943,7 +943,6 @@ We mine association rules of the form:
 
 Rules are ranked by lift to highlight mechanics that occur more often than expected within a genre context. The support is set to `0.01` and confidence to `0.3`. Higher values fail to find interesting relationships in the data.
 ```{r, echo = FALSE}
-# --- MECHANIC GROUPS (project-defined) ---
 resource_management_mechanic <- c("Base-Building","Building","Resource Management","Inventory Management",
                                 "Crafting","Automation","Mining","Farming")
 customization_mechanic <- c("Gun Customization","Character Customization")
@@ -986,7 +985,7 @@ mechanics <- list(
   tutorial = tutorial_mechanic
 )
 
-# Generate or load Mechanics dataset (cached to disk)
+# Generate or load Mechanics dataset
 out_file <- file.path("data", "indie_games_mechanic.rds")
 
 if (file.exists(out_file)) {
@@ -1019,7 +1018,7 @@ m_list <- LIST(trans_m)
 gm_list <- Map(c, g_list, m_list)
 trans_gm <- as(gm_list, "transactions")
 
-# Mine rules: GENRES (LHS) -> MECHANICS (RHS)
+# Mine rules: GENRES -> MECHANICS
 rules_gm <- apriori(
   trans_gm,
   parameter  = list(supp = 0.01, conf = 0.30, minlen = 3, maxlen = 5, target = "rules"),
@@ -1031,7 +1030,7 @@ rules_gm <- apriori(
   control = list(verbose = FALSE)
 )
 
-# Filter rules whose LHS matches one of the top genre itemsets (from Section 5)
+# Filter rules whose LHS matches one of the top genre itemsets
 top_genre_list <- LIST(items(genre_top))
 top_keys <- vapply(top_genre_list, function(x) paste(sort(x), collapse = "|"), "")
 lhs_keys <- vapply(LIST(lhs(rules_gm)), function(x) paste(sort(x), collapse = "|"), "")
@@ -1047,7 +1046,7 @@ mechanic_counts <- indie_games_mechanic %>%
 most_common_mech <- mechanic_counts$mechanic[1]
 most_common_mech_n <- mechanic_counts$count[1]
 
-# Compact table of the strongest rules (ranked by lift)
+# Table of the strongest rules
 rules_sel_df <- as(rules_sel, "data.frame") %>%
   arrange(desc(lift)) %>%
   select(rules, support, confidence, lift) %>%
@@ -1080,7 +1079,7 @@ Overall, the results support a practical conclusion: successful indie games ofte
 ## Game characteristics study
 Characteristics are captured from Steam categories/tags that describe presentation and play modes (e.g., 2D/3D, first-person/third-person, singleplayer/co-op, VR). We mine frequent characteristic combinations using Eclat.
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 # --- CHARACTERISTICS (one-hot directly) ---
 camera_characteristic <- c("2D","2.5D","3D","Isometric","Top-Down","6DOF","First-Person","Third Person")
 vr_characteristic <- c("VR","VR Only","Asymmetric VR")
@@ -1156,89 +1155,27 @@ We also observe VR Only appearing in the top combinations but with low support, 
 Overall, characteristics appear to matter mainly as experience modifiers: multiplayer modes (co-op/PvP) are recurring patterns among successful games, while more specialized formats (like VR-only) are less common.
 
 ##Pricing and owners
-Finally, we explore whether price is related to estimated owners. We initially attempted to approach this with a simple scatter plot which ended up hard to interpret due to heavy overlap, price clustering, and the long-tail nature of owners.
-```{r, include=FALSE}
-indie_games_regression <- indie_games_data %>%
-  filter(price <= 90, price >= 0) %>%
-  add_column_count(supported_languages, "languages_count") %>%
-  mutate(
-    # Ensure numeric types
-    num_reviews_total = as.numeric(num_reviews_total),
-    recommendations   = as.numeric(recommendations),
-    pct_pos_total     = as.numeric(pct_pos_total),
+Finally, we explore whether price is related to estimated owners. We initially attempted to approach this with a simple scatter plot which ended up hard to interpret due to heavy overlap and the long-tail nature of owners. Instead the best analysis technique has been running a multivariate regression and studying the weights.
 
-    owners_min = as.numeric(estimated_owners_min),
-    owners_max = as.numeric(estimated_owners_max)
-  ) %>%
-  # Remove rows that would break log transforms (rare data anomalies)
-  filter(
-    !is.na(owners_min), !is.na(owners_max),
-    owners_min >= 0, owners_max >= 0,
-    !is.na(num_reviews_total), num_reviews_total >= 0,
-    !is.na(recommendations), recommendations >= 0,
-    !is.na(pct_pos_total), is.finite(pct_pos_total)
-  ) %>%
-  mutate(
-    owners_mid  = (owners_min + owners_max) / 2,
-    log_owners  = log1p(owners_mid),
-    log_price   = log1p(price),
-    log_reviews = log1p(num_reviews_total),
-    log_recs    = log1p(recommendations)
-  ) %>%
-  filter(
-    is.finite(log_owners),
-    is.finite(log_price),
-    is.finite(log_reviews),
-    is.finite(log_recs)
-  )
+### Multivariate regression
+A raw relationship between price and owners can be misleading because both variables are correlated with other factors. To reduce this bias, we estimate a multivariate regression on paid games only (price > 0), controlling for:
+* **Review volume** (addittional approximate for audience size)
+* **Rating quality** (proxy for perceived value)
+* **Recommendations** (proxy for engagement)
+* **DLC count and language count** (rough indicators of production scope)
 
-price_bins <- indie_games_regression %>%
-  mutate(price_bin = case_when(
-    price == 0 ~ "Free",
-    price <= 1 ~ "€0–1",
-    price <= 5 ~ "€1–5",
-    price <= 10 ~ "€5–10",
-    price <= 20 ~ "€10–20",
-    price <= 40 ~ "€20–40",
-    TRUE ~ "€40–90"
-  )) %>%
-  mutate(price_bin = factor(price_bin, levels = c(
-    "Free","€0–1","€1–5","€5–10","€10–20","€20–40","€40–90"
-  ))) %>%
-  group_by(price_bin) %>%
-  summarise(
-    n = n(),
-    geo_mean_owners = exp(mean(log1p(owners_mid), na.rm = TRUE)) - 1,
-    p10 = quantile(owners_mid, 0.10, na.rm = TRUE),
-    p25 = quantile(owners_mid, 0.25, na.rm = TRUE),
-    p75 = quantile(owners_mid, 0.75, na.rm = TRUE),
-    p90 = quantile(owners_mid, 0.90, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-ggplot(price_bins, aes(x = price_bin)) +
-  geom_linerange(aes(ymin = p10, ymax = p90), linewidth = 0.8) +
-  geom_linerange(aes(ymin = p25, ymax = p75), linewidth = 3) +
-  geom_point(aes(y = geo_mean_owners), size = 2.2) +
-  geom_text(aes(y = p90, label = paste0("n=", scales::comma(n))),
-            vjust = -0.7, size = 3) +
-  scale_y_continuous(trans = "log1p") +
-  coord_flip() +
-  labs(
-    title = "Owners by price tier (candlestick summary)",
-    subtitle = "Point = geometric mean owners; thick bar = 25–75%; thin line = 10–90%",
-    x = NULL,
-    y = "Estimated owners (log1p)"
-  ) +
-  theme_minimal()
-```
-
+The coefficient of log-price can be interpreted as the partial association between price and owners after accounting for these variables.
 ```{r, echo=FALSE}
+# Fit multivariate model on paid games
 paid <- indie_games_regression %>%
   filter(price > 0) %>%
+  mutate(
+    dlc_count = as.numeric(dlc_count),
+    languages_count = as.numeric(languages_count)
+  ) %>%
   filter(
     if_all(
-      c(log_owners, log_price, log_reviews, pct_pos_total, log_recs, dlc_count, languages_count),
+      all_of(c("log_owners", "log_price", "log_reviews", "pct_pos_total", "log_recs", "dlc_count", "languages_count")),
       ~ is.finite(.x)
     )
   )
@@ -1249,37 +1186,88 @@ m_multi <- lm(
 )
 ms_multi <- summary(m_multi)
 
-b
+n_paid   <- nrow(paid)
+beta_p   <- unname(coef(m_multi)["log_price"])
+p_p      <- ms_multi$coefficients["log_price", "Pr(>|t|)"]
+r2       <- ms_multi$r.squared
+r2_adj   <- ms_multi$adj.r.squared
+
+# --- Multicollinearity diagnostics (VIF) ---
+# VIF > 5 indicates notable multicollinearity; > 10 is often considered severe.
+vif_tbl <- NULL
+if (requireNamespace("car", quietly = TRUE)) {
+  v <- car::vif(m_multi)
+  vif_tbl <- data.frame(
+    Variable = names(v),
+    VIF = round(as.numeric(v), 2),
+    row.names = NULL
+  ) %>%
+    arrange(desc(VIF))
+}
+
+# --- Coefficient table (compact) ---
+keep_terms <- c("log_price", "log_reviews", "pct_pos_total", "log_recs", "dlc_count", "languages_count")
+coef_mat <- ms_multi$coefficients
+coef_show <- coef_mat[rownames(coef_mat) %in% keep_terms, , drop = FALSE]
+
+coef_tbl <- data.frame(
+  Variable = rownames(coef_show),
+  Estimate = round(coef_show[, 1], 4),
+  `Std. Error` = round(coef_show[, 2], 4),
+  `t value` = round(coef_show[, 3], 2),
+  `p value` = signif(coef_show[, 4], 3),
+  row.names = NULL
+)
+
+knitr::kable(
+  coef_tbl,
+  caption = "Multivariate regression coefficients (paid games only)"
+)
+
+if (!is.null(vif_tbl)) {
+  knitr::kable(
+    vif_tbl,
+    caption = "Variance Inflation Factors (VIF) for multicollinearity diagnosis"
+  )
+}
+
+# Standardized coefficients for comparing relative impact
+m_std <- lm(
+  scale(log_owners) ~ scale(log_price) + scale(log_reviews) + scale(pct_pos_total) +
+    scale(log_recs) + scale(dlc_count) + scale(languages_count),
+  data = paid
+)
+
+std_coef <- summary(m_std)$coefficients
+std_tbl <- data.frame(
+  Variable = rownames(std_coef),
+  Std_Estimate = std_coef[, 1],
+  `Std. Error` = std_coef[, 2],
+  `t value` = std_coef[, 3],
+  `p value` = std_coef[, 4],
+  row.names = NULL,
+  check.names = FALSE
+) %>%
+  filter(Variable != "(Intercept)") %>%
+  mutate(
+    Variable = gsub("^scale\\((.*)\\)$", "\\1", Variable),
+    Std_Estimate = round(Std_Estimate, 3),
+    `Std. Error` = round(`Std. Error`, 3),
+    `t value` = round(`t value`, 2),
+    `p value` = signif(`p value`, 3)
+  ) %>%
+  arrange(desc(abs(Std_Estimate)))
+
+knitr::kable(
+  std_tbl,
+  caption = "Standardized coefficients (relative impact comparison)"
+)
 ```
+The VIF table provides an explicit check for multicollinearity. When VIF values are elevated, predictors overlap strongly (for example, review volume and recommendations both reflect visibility and player engagement). In that situation, individual coefficients should be interpreted cautiously: their signs and magnitudes can shift because the model is separating very similar signals.
 
-```{r}
-df_tiers <- S %>%
-  mutate(price_tier = case_when(
-    price == 0 ~ "Free",
-    price <= 1 ~ "€0–1",
-    price <= 5 ~ "€1–5",
-    price <= 10 ~ "€5–10",
-    price <= 20 ~ "€10–20",
-    price <= 40 ~ "€20–40",
-    price <= 100 ~ "€40–100",
-    TRUE ~ "€100+"
-  )) %>%
-  mutate(price_tier = factor(price_tier, levels = c(
-    "Free","€0–1","€1–5","€5–10","€10–20","€20–40","€40–100","€100+"
-  )))
+Multicollinearity does not affect the interpretation of price, since log_price has VIF 1.12. Therefore, the negative coefficient of price can be interpreted as a stable partial relationship: higher prices are associated with slightly fewer owners, although the magnitude is small compared to visibility signals such as review volume.
 
-ggplot(df_tiers, aes(x = price_tier, y = owners_mid)) +
-  geom_boxplot(outlier.alpha = 0.05) +
-  scale_y_continuous(trans = "log1p") +
-  coord_flip() +
-  labs(
-    title = "Owners distribution across price tiers",
-    x = NULL,
-    y = "Estimated owners (log1p)"
-  ) +
-  theme_minimal()
-```
-
+After controlling for closely related visibility/quality variables, price has at most a small partial association with owners. This suggests that in the indie market, audience size is driven more by discoverability and perceived value (captured by reviews and engagement signals) than by price alone.
 
 
 
