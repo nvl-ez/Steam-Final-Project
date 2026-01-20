@@ -551,122 +551,6 @@ get_unique_list_values <- function(x) {
   
   sort(unique(vals))
 }
-
-#-------------------------------------------------
-# Segment remaining steam attributes:
-#-------------------------------------------------
-#Mechanics
-resource_management_mechanic <- c(
-  # Economy, building, resources
-  "Base-Building", "Building", "Resource Management", "Inventory Management",
-  "Crafting", "Automation", "Mining", "Farming")
-
-customization_mechanic <- c(
-  # Customization
-  "Gun Customization", "Character Customization")
-movement_mechanic <- c(
-  # Movement
-  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper")
-physics_mechanic <- c(
-  # Physics
-  "Physics", "Destruction")
-failure_mechanic <- c(
-  # Failure
-  "Permadeath", "Perma Death")
-procedural_mechanic <- c(
-  # Procedural
-  "Procedural Generation", "Music-Based Procedural Generation")
-turn_mechanic <- c(
-  # Turns
-  "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
-  "Real-Time", "Real-Time with Pause",
-  "Time Manipulation", "Time Management", "Time Attack")
-spatial_rules_mechanic <- c(
-  # Spatial rules
-  "Grid-Based Movement", "Hex Grid")
-quicktime_events_mechanic <- c(
-  # QTE
-  "Quick-Time Events")
-narrative_mechanic <- c(
-  # Narrative logic
-  "Choices Matter", "Multiple Endings", "Nonlinear")
-exploration_mechanic <- c(
-  # Exploration & structure
-  "Exploration", "Dungeon Crawler", "Collectathon",
-  "Boss Rush", "Side Scroller", "Loot")
-social_mechanic <- c(
-  # Social deduction
-  "Social Deduction")
-card_mechanic <- c(
-  # Card/Deck mechanics
-  "Deckbuilding", "Card Battler")
-programming_mechanic <- c(
-  # Programming
-  "Programming", "Coding")
-economy_mechanic <- c(
-  # Economy
-  "Trading", "Economy", "Capitalism",
-  "Diplomacy")
-modding_mechanic <- c(
-  # Modding / creation
-  "Level Editor", "Moddable", "Mod")
-tutorial_mechanic <- c(
-  # Tutorial
-  "Tutorial")
-
-mechanics <- list(
-  resource_management = resource_management_mechanic, 
-  customization = customization_mechanic, 
-  movement = movement_mechanic, 
-  physics = physics_mechanic, 
-  failure = failure_mechanic, 
-  procedural = procedural_mechanic, 
-  turn = turn_mechanic,
-  spatial_rules = spatial_rules_mechanic,
-  quicktime_events = quicktime_events_mechanic,
-  narrative = narrative_mechanic,
-  exploration = exploration_mechanic,
-  social = social_mechanic,
-  card = card_mechanic,
-  programming = programming_mechanic,
-  economy = economy_mechanic,
-  modding = modding_mechanic,
-  tutorial = tutorial_mechanic
-)
-
-# Characteristics
-camera_characteristic <- c(
-  # Dimensionality & camera
-  "2D", "2.5D", "3D",
-  "Isometric", "Top-Down",
-  "6DOF",
-  "First-Person", "Third Person")
-
-vr_characteristic <- c(
-  # VR
-  "VR", "VR Only", "Asymmetric VR")
-
-players_characteristic <- c(
-  # Player count / mode
-  "Singleplayer",
-  "Multiplayer", "Massively Multiplayer",
-  "Co-op", "Local Co-Op", "Online Co-Op", "Co-op Campaign",
-  "4 Player Local", "Split Screen")
-team_characteristic <- c(
-  # Team/role structure
-  "PvP", "PvE", "Team-Based",
-  "Asynchronous Multiplayer")
-esports_characteristic <- c(
-  # Competitive/e-sports
-  "e-sports")
-
-characteristics <- list(
-  camera = camera_characteristic,
-  vr = vr_characteristic,
-  players = players_characteristic,
-  team = team_characteristic,
-  esports = esports_characteristic
-)
 ```
 Indie game development is high-risk: budgets are limited, marketing reach is uncertain, and audience discovery can be unpredictable. This section explores commonalities across successful indie games, with two practical goals:
 * **Understand market audience:** identify what combinations of genres/mechanics tend to co-occur among games that reach larger audiences.
@@ -818,7 +702,7 @@ We therefore compute the variable that best differentiates the clusters (highest
 In our case, the most discriminant variable is `r most_discriminative_var` and it produces a clean ordering between the three clusters, which supports using this partition in the rest of the report.
 
 As an additional sanity check, we compute a global silhouette score on a random sample of games in the standardized feature space. Silhouette values closer to 1 indicate well-separated clusters, values near 0 indicate overlap, and negative values suggest poor assignments.
-```{r, echo = TRUE}
+```{r, echo = FALSE}
 n_all <- nrow(indie_games_cluster)
 idx <- sample(seq_len(n_all), size = min(5000, n_all))
 
@@ -837,7 +721,7 @@ The average silhouette score on the sample is `r round(silhouette_avg, 3)`.
 The figure below summarizes the mean and median values of the discriminant variable (`r most_discriminative_var`) across clusters, alongside the number of games per tier.
 
 In our run, the discriminant variable is `r most_discriminative_var`, which acts as a strong quality/visibility signal: the unsuccessful long-tail cluster concentrates near the lowest values, while the two top-tier cluster achieves the highest values, separating games with limited traction from games with stable success.
-```{r}
+```{r, echo = FALSE}
 # Plot the cluster summary (mean + median of the most discriminant variable)
 cluster_summary_long <- cluster_summary %>%
   select(success_cluster, tier, mean_val, median_val, n_games) %>%
@@ -874,7 +758,7 @@ cluster_summary_long %>%
   theme(axis.text.x = element_text(angle = 15, hjust = 1))
 ```
 A key takeaway from the cluster sizes is that the distribution is highly imbalanced: a large share of games are concentrated in the lower-to-mid tiers, while the top tier contains only a small number of games. In this run, the lowest tier accounts for `r scales::percent(cluster_summary$prop[1], accuracy = 0.1)`, whereas the highest tier represents only `r scales::percent(tail(cluster_summary$prop, 1), accuracy = 0.1)` of indie games.
-```{r}
+```{r, echo = FALSE}
 # Plot number of games per cluster (count distribution)
 cluster_summary %>%
   mutate(cluster = paste0("Cluster ", success_cluster, " — ", tier)) %>%
@@ -1013,7 +897,7 @@ most_common_genre_n <- genre_counts$count[1]
 ```
 ### Most common genre combinations (frequent itemsets)
 The table below lists the most frequent genre combinations among successful games (support = proportion of successful games containing that combination).
-```{r}
+```{r, echo = FALSE}
 genre_top <- head(sort(genre_itemsets, by = "support"), 30)
 genre_df  <- as(genre_top, "data.frame")
 
@@ -1029,7 +913,7 @@ ggplot(genre_df, aes(x = reorder(items, support), y = support)) +
   theme(axis.text.y = element_text(size = 8))
 ```
 ### Genre prevalence
-```{r}
+```{r, echo = FALSE}
 genre_counts %>%
   mutate(genre = reorder(genre, count)) %>%
   ggplot(aes(x = genre, y = count)) +
@@ -1050,6 +934,147 @@ Looking at frequent genre combinations (Eclat), the strongest result is the pair
 The second major pattern is that action combines well with several popular genres: action + RPG, action + simulation, action + strategy, action + shooter, and action + platformer all appear as frequent itemsets. This highlights a typical indie design strategy: start from a strong core action loop and enrich it with complementary systems such as progression (RPG), management (simulation/strategy), or movement challenges (platformer).
 
 ## Mechanics study 
+Mechanics are stored as list of tags (e.g., resource_management, procedural, narrative, card/deckbuilding, etc.) in the steam dataset so they are first one-hot encoded in a binary manner so the apriori algorithm can be executed over them. 
+Instead of only asking “which mechanics are common?”, we also ask: *Given a genre combination, which mechanics are most strongly associated with it?*
+
+We mine association rules of the form:
+* LHS (antecedent): genre group(s)
+* RHS (consequent): mechanic group
+
+Rules are ranked by lift to highlight mechanics that occur more often than expected within a genre context. The support is set to `0.01` and confidence to `0.3`. Higher values fail to find interesting relationships in the data.
+```{r, echo = FALSE}
+# --- MECHANIC GROUPS (project-defined) ---
+resource_management_mechanic <- c("Base-Building","Building","Resource Management","Inventory Management",
+                                "Crafting","Automation","Mining","Farming")
+customization_mechanic <- c("Gun Customization","Character Customization")
+movement_mechanic <- c("Stealth","Parkour","Swordplay","Archery","Sniper")
+physics_mechanic <- c("Physics","Destruction")
+failure_mechanic <- c("Permadeath","Perma Death")
+procedural_mechanic <- c("Procedural Generation","Music-Based Procedural Generation")
+turn_mechanic <- c("Turn-Based","Turn-Based Combat","Turn-Based Tactics",
+                  "Real-Time","Real-Time with Pause",
+                  "Time Manipulation","Time Management","Time Attack")
+spatial_rules_mechanic <- c("Grid-Based Movement","Hex Grid")
+quicktime_events_mechanic <- c("Quick-Time Events")
+narrative_mechanic <- c("Choices Matter","Multiple Endings","Nonlinear")
+exploration_mechanic <- c("Exploration","Dungeon Crawler","Collectathon",
+                         "Boss Rush","Side Scroller","Loot")
+social_mechanic <- c("Social Deduction")
+card_mechanic <- c("Deckbuilding","Card Battler")
+programming_mechanic <- c("Programming","Coding")
+economy_mechanic <- c("Trading","Economy","Capitalism","Diplomacy")
+modding_mechanic <- c("Level Editor","Moddable","Mod")
+tutorial_mechanic <- c("Tutorial")
+
+mechanics <- list(
+  resource_management = resource_management_mechanic,
+  customization = customization_mechanic,
+  movement = movement_mechanic,
+  physics = physics_mechanic,
+  failure = failure_mechanic,
+  procedural = procedural_mechanic,
+  turn = turn_mechanic,
+  spatial_rules = spatial_rules_mechanic,
+  quicktime_events = quicktime_events_mechanic,
+  narrative = narrative_mechanic,
+  exploration = exploration_mechanic,
+  social = social_mechanic,
+  card = card_mechanic,
+  programming = programming_mechanic,
+  economy = economy_mechanic,
+  modding = modding_mechanic,
+  tutorial = tutorial_mechanic
+)
+
+# Generate or load Mechanics dataset (cached to disk)
+out_file <- file.path("data", "indie_games_mechanic.rds")
+
+if (file.exists(out_file)) {
+  indie_games_mechanic <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_mechanic <- successful_indie_games_attributes
+  for (nm in names(mechanics)) {
+    indie_games_mechanic <- make_group_flag(
+      data = indie_games_mechanic,
+      values = mechanics[[nm]],
+      group_name = nm
+    )
+  }
+  indie_games_mechanic <- indie_games_mechanic %>% select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_mechanic, out_file)
+}
+
+trans_indie_games_mechanic <- as(indie_games_mechanic, "transactions")
+
+# Combine genres + mechanics per game
+trans_g <- trans_indie_games_genre
+trans_m <- trans_indie_games_mechanic
+
+g_list <- LIST(trans_g)
+m_list <- LIST(trans_m)
+
+gm_list <- Map(c, g_list, m_list)
+trans_gm <- as(gm_list, "transactions")
+
+# Mine rules: GENRES (LHS) -> MECHANICS (RHS)
+rules_gm <- apriori(
+  trans_gm,
+  parameter  = list(supp = 0.01, conf = 0.30, minlen = 3, maxlen = 5, target = "rules"),
+  appearance = list(
+    default = "none",
+    lhs = itemLabels(trans_g),
+    rhs = itemLabels(trans_m)
+  ),
+  control = list(verbose = FALSE)
+)
+
+# Filter rules whose LHS matches one of the top genre itemsets (from Section 5)
+top_genre_list <- LIST(items(genre_top))
+top_keys <- vapply(top_genre_list, function(x) paste(sort(x), collapse = "|"), "")
+lhs_keys <- vapply(LIST(lhs(rules_gm)), function(x) paste(sort(x), collapse = "|"), "")
+rules_sel <- rules_gm[lhs_keys %in% top_keys]
+
+# Mechanic counts
+mechanic_counts <- indie_games_mechanic %>%
+  pivot_longer(cols = everything(), names_to = "mechanic", values_to = "has") %>%
+  group_by(mechanic) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_mech <- mechanic_counts$mechanic[1]
+most_common_mech_n <- mechanic_counts$count[1]
+
+# Compact table of the strongest rules (ranked by lift)
+rules_sel_df <- as(rules_sel, "data.frame") %>%
+  arrange(desc(lift)) %>%
+  select(rules, support, confidence, lift) %>%
+  head(15)
+```
+```{r, echo=FALSE}
+plot(
+  rules_sel,
+  method = "scatterplot",
+  measure = c("support", "confidence"),
+  shading = "lift"
+)
+```
+
+```{r, echo=FALSE}
+knitr::kable(
+  rules_sel_df,
+  digits = 3,
+  col.names = c("Rule (Genres → Mechanic)", "Support", "Confidence", "Lift"),
+  caption = "Top genre→mechanic rules among successful indie games (ranked by lift)"
+)
+```
+### Conclussions from genres and mechanic rules
+A first clear pattern is the strength of resource management inside strategy/simulation hybrids. The rule {simulation, strategy} -> {resource_management} has the highest lift (around 3.75), meaning that management-oriented mechanics are several times more likely than expected when a game sits at the intersection of these genres. Similar high-lift rules also appear for {action, strategy} and {action, simulation}, suggesting that successful hybrids often combine an action layer with systems such as crafting, automation, building, or economy loops.
+
+A second pattern is that exploration frequently complements action-driven genres. Rules such as {action, platformer} → {exploration}, {action, tabletop} → {exploration}, and {action, RPG} → {exploration} show relatively high confidence, indicating that when successful games blend action with movement/progression, they often reinforce the experience through discovery loops (new areas, loot, dungeons, collectables, or open-ended progression paths).
+
 
 # Can a single game have enough influence to make other games have its tag?
 
