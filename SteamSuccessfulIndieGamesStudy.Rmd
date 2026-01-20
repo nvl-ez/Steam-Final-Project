@@ -1073,7 +1073,214 @@ knitr::kable(
 ### Conclussions from genres and mechanic rules
 A first clear pattern is the strength of resource management inside strategy/simulation hybrids. The rule {simulation, strategy} -> {resource_management} has the highest lift (around 3.75), meaning that management-oriented mechanics are several times more likely than expected when a game sits at the intersection of these genres. Similar high-lift rules also appear for {action, strategy} and {action, simulation}, suggesting that successful hybrids often combine an action layer with systems such as crafting, automation, building, or economy loops.
 
-A second pattern is that exploration frequently complements action-driven genres. Rules such as {action, platformer} → {exploration}, {action, tabletop} → {exploration}, and {action, RPG} → {exploration} show relatively high confidence, indicating that when successful games blend action with movement/progression, they often reinforce the experience through discovery loops (new areas, loot, dungeons, collectables, or open-ended progression paths).
+A second pattern is that exploration frequently complements action-driven genres. Rules such as {action, platformer} -> {exploration}, {action, tabletop} -> {exploration}, and {action, RPG} -> {exploration} show relatively high confidence, indicating that when successful games blend action with movement/progression, they often reinforce the experience through discovery loops (new areas, loot, dungeons, collectables, or open-ended progression paths).
+
+Overall, the results support a practical conclusion: successful indie games often rely on a core genre identity and then amplify engagement through a matching mechanic; management systems for strategy/simulation hybrids, and exploration loops for action-driven combinations. These associations do not prove causality, but they highlight combinations that repeatedly co-occur among successful titles and can reduce design risk by aligning with common audience expectations.
+
+## Game characteristics study
+Characteristics are captured from Steam categories/tags that describe presentation and play modes (e.g., 2D/3D, first-person/third-person, singleplayer/co-op, VR). We mine frequent characteristic combinations using Eclat.
+
+```{r, echo=FALSE}
+# --- CHARACTERISTICS (one-hot directly) ---
+camera_characteristic <- c("2D","2.5D","3D","Isometric","Top-Down","6DOF","First-Person","Third Person")
+vr_characteristic <- c("VR","VR Only","Asymmetric VR")
+players_characteristic <- c("Singleplayer","Multiplayer","Massively Multiplayer",
+                           "Co-op","Local Co-Op","Online Co-Op","Co-op Campaign",
+                           "4 Player Local","Split Screen")
+team_characteristic <- c("PvP","PvE","Team-Based","Asynchronous Multiplayer")
+esports_characteristic <- c("e-sports")
+
+characteristics <- list(
+  camera = camera_characteristic,
+  vr = vr_characteristic,
+  players = players_characteristic,
+  team = team_characteristic,
+  esports = esports_characteristic
+)
+
+# Generate or load characteristics dataset (cached to disk)
+characteristics_flat <- unlist(characteristics)
+out_file <- file.path("data", "indie_games_characteristic.rds")
+
+if (file.exists(out_file)) {
+  indie_games_characteristic <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_characteristic <- successful_indie_games_attributes %>%
+    make_value_one_hot(characteristics_flat) %>%
+    select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_characteristic, out_file)
+}
+
+trans_indie_games_characteristic <- as(indie_games_characteristic, "transactions")
+
+characteristic_itemsets <- eclat(trans_indie_games_characteristic, parameter = list(support = 0.001, minlen = 2))
+characteristic_top <- head(sort(characteristic_itemsets, by = "support"), 12)
+characteristic_df <- as(characteristic_top, "data.frame")
+
+# Also track single-feature prevalence for a short narrative
+characteristic_counts <- indie_games_characteristic %>%
+  pivot_longer(cols = everything(), names_to = "characteristic", values_to = "has") %>%
+  group_by(characteristic) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_char <- characteristic_counts$characteristic[1]
+most_common_char_n <- characteristic_counts$count[1]
+```
+### Top characteristic combinations
+```{r, echo=FALSE}
+# Make the itemset table robust to different column layouts
+item_col <- intersect(names(characteristic_df), c("items", "itemset", "itemsets"))[1]
+supp_col <- intersect(names(characteristic_df), c("support", "supp"))[1]
+
+characteristic_df_k <- characteristic_df
+if (!is.na(item_col) && !is.na(supp_col)) {
+  characteristic_df_k <- characteristic_df[, c(item_col, supp_col), drop = FALSE]
+}
+colnames(characteristic_df_k) <- c("Characteristic combination", "Support")
+
+knitr::kable(
+  characteristic_df_k,
+  digits = 4,
+  caption = "Top characteristic combinations among successful indie games"
+)
+```
+### Conclusions from characteristics
+The most frequent characteristic combinations in the successful subset are primarily multiplayer-focused, especially the pairing {Co-op, PvP} (support ≈ 0.053). This suggests that, among successful indie games that include multiplayer features, a common design choice is to combine collaboration and competition within the same title.
+
+We also observe VR Only appearing in the top combinations but with low support, suggesting that VR-exclusive successful games exist but represent a niche segment compared with traditional PC titles. A plausible explanation is that the VR market offers fewer alternatives overall, so the relatively small number of VR-only titles can capture a larger share of VR players and reach the engagement thresholds needed to be labeled as successful in our proxy, which makes VR-only features show up among the top itemsets.
+
+Overall, characteristics appear to matter mainly as experience modifiers: multiplayer modes (co-op/PvP) are recurring patterns among successful games, while more specialized formats (like VR-only) are less common.
+
+##Pricing and owners
+Finally, we explore whether price is related to estimated owners. We initially attempted to approach this with a simple scatter plot which ended up hard to interpret due to heavy overlap, price clustering, and the long-tail nature of owners.
+```{r, include=FALSE}
+indie_games_regression <- indie_games_data %>%
+  filter(price <= 90, price >= 0) %>%
+  add_column_count(supported_languages, "languages_count") %>%
+  mutate(
+    # Ensure numeric types
+    num_reviews_total = as.numeric(num_reviews_total),
+    recommendations   = as.numeric(recommendations),
+    pct_pos_total     = as.numeric(pct_pos_total),
+
+    owners_min = as.numeric(estimated_owners_min),
+    owners_max = as.numeric(estimated_owners_max)
+  ) %>%
+  # Remove rows that would break log transforms (rare data anomalies)
+  filter(
+    !is.na(owners_min), !is.na(owners_max),
+    owners_min >= 0, owners_max >= 0,
+    !is.na(num_reviews_total), num_reviews_total >= 0,
+    !is.na(recommendations), recommendations >= 0,
+    !is.na(pct_pos_total), is.finite(pct_pos_total)
+  ) %>%
+  mutate(
+    owners_mid  = (owners_min + owners_max) / 2,
+    log_owners  = log1p(owners_mid),
+    log_price   = log1p(price),
+    log_reviews = log1p(num_reviews_total),
+    log_recs    = log1p(recommendations)
+  ) %>%
+  filter(
+    is.finite(log_owners),
+    is.finite(log_price),
+    is.finite(log_reviews),
+    is.finite(log_recs)
+  )
+
+price_bins <- indie_games_regression %>%
+  mutate(price_bin = case_when(
+    price == 0 ~ "Free",
+    price <= 1 ~ "€0–1",
+    price <= 5 ~ "€1–5",
+    price <= 10 ~ "€5–10",
+    price <= 20 ~ "€10–20",
+    price <= 40 ~ "€20–40",
+    TRUE ~ "€40–90"
+  )) %>%
+  mutate(price_bin = factor(price_bin, levels = c(
+    "Free","€0–1","€1–5","€5–10","€10–20","€20–40","€40–90"
+  ))) %>%
+  group_by(price_bin) %>%
+  summarise(
+    n = n(),
+    geo_mean_owners = exp(mean(log1p(owners_mid), na.rm = TRUE)) - 1,
+    p10 = quantile(owners_mid, 0.10, na.rm = TRUE),
+    p25 = quantile(owners_mid, 0.25, na.rm = TRUE),
+    p75 = quantile(owners_mid, 0.75, na.rm = TRUE),
+    p90 = quantile(owners_mid, 0.90, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(price_bins, aes(x = price_bin)) +
+  geom_linerange(aes(ymin = p10, ymax = p90), linewidth = 0.8) +
+  geom_linerange(aes(ymin = p25, ymax = p75), linewidth = 3) +
+  geom_point(aes(y = geo_mean_owners), size = 2.2) +
+  geom_text(aes(y = p90, label = paste0("n=", scales::comma(n))),
+            vjust = -0.7, size = 3) +
+  scale_y_continuous(trans = "log1p") +
+  coord_flip() +
+  labs(
+    title = "Owners by price tier (candlestick summary)",
+    subtitle = "Point = geometric mean owners; thick bar = 25–75%; thin line = 10–90%",
+    x = NULL,
+    y = "Estimated owners (log1p)"
+  ) +
+  theme_minimal()
+```
+
+```{r, echo=FALSE}
+paid <- indie_games_regression %>%
+  filter(price > 0) %>%
+  filter(
+    if_all(
+      c(log_owners, log_price, log_reviews, pct_pos_total, log_recs, dlc_count, languages_count),
+      ~ is.finite(.x)
+    )
+  )
+
+m_multi <- lm(
+  log_owners ~ log_price + log_reviews + pct_pos_total + log_recs + dlc_count + languages_count,
+  data = paid
+)
+ms_multi <- summary(m_multi)
+
+b
+```
+
+```{r}
+df_tiers <- S %>%
+  mutate(price_tier = case_when(
+    price == 0 ~ "Free",
+    price <= 1 ~ "€0–1",
+    price <= 5 ~ "€1–5",
+    price <= 10 ~ "€5–10",
+    price <= 20 ~ "€10–20",
+    price <= 40 ~ "€20–40",
+    price <= 100 ~ "€40–100",
+    TRUE ~ "€100+"
+  )) %>%
+  mutate(price_tier = factor(price_tier, levels = c(
+    "Free","€0–1","€1–5","€5–10","€10–20","€20–40","€40–100","€100+"
+  )))
+
+ggplot(df_tiers, aes(x = price_tier, y = owners_mid)) +
+  geom_boxplot(outlier.alpha = 0.05) +
+  scale_y_continuous(trans = "log1p") +
+  coord_flip() +
+  labs(
+    title = "Owners distribution across price tiers",
+    x = NULL,
+    y = "Estimated owners (log1p)"
+  ) +
+  theme_minimal()
+```
+
+
 
 
 # Can a single game have enough influence to make other games have its tag?
