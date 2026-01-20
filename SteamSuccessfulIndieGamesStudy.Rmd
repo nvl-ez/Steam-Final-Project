@@ -324,6 +324,8 @@ make_group_flag <- function(data, values, group_name,
 }
 ```
 
+Now we going to explore the market share of each genre and how it evolves through time, and the playtime of each genre trying to see which are the genres with more hardcore players.
+
 ```{r, echo = FALSE}
 
 file <- file.path("data", "genre_group_coded_steam.rds")
@@ -347,6 +349,12 @@ if (file.exists(file)) {
   saveRDS(genre_group_coded_steam, file)
 }
 ```
+
+Firstly for having a objective view if the genre have truly grown we going to mesure the market share of each genre of each year. The advantage of using this is that the grown of each year is relative to the total grown of the game industry, if we use the raw game numbers we cannot difference if the game have actually grown or it's because the general game market have a growing tendency.
+
+$$
+\tex{Market Share} = \frac{}{}\tex{}
+$$
 
 ```{r, echo = FALSE}
 # 1. Prepare the trend data
@@ -396,6 +404,7 @@ genre_grow <- market_share %>%
 print(genre_grow)
 ```
 
+
 ```{r, echo = FALSE}
 ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
   geom_col() +
@@ -412,8 +421,13 @@ ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Ne
   theme_minimal()
 ```
 
+```{r}
+positive_genres <- genre_grow %>% filter(Net_Growth > 0) %>% pull(Genre)
+negative_genres <- genre_grow %>% filter(Net_Growth < 0) %>% pull(Genre)
+```
+
 ```{r, echo = FALSE}
-ggplot(relative_growth_df %>% filter(Genre %in% positive_genres), 
+ggplot(market_share %>% filter(Genre %in% positive_genres), 
        aes(x = release_year, y = Market_Share, color = Genre)) +
   geom_line(linewidth = 1.2, alpha = 0.8) +
   geom_point(size = 1.5) +
@@ -429,7 +443,7 @@ ggplot(relative_growth_df %>% filter(Genre %in% positive_genres),
 ```
 
 ```{r, echo = FALSE}
-ggplot(relative_growth_df %>% filter(Genre %in% negative_genres), 
+ggplot(market_share %>% filter(Genre %in% negative_genres), 
        aes(x = release_year, y = Market_Share, color = Genre)) +
   geom_line(linewidth = 1.2, alpha = 0.8) +
   geom_point(size = 1.5) +
@@ -445,7 +459,6 @@ ggplot(relative_growth_df %>% filter(Genre %in% negative_genres),
 ```
 
 ```{r, echo = FALSE}
-# 1. Filter for games that have actually been played
 played_games <- genre_group_coded_steam %>%
   filter(average_playtime_forever > 0)
 ```
@@ -496,7 +509,6 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = 
   theme_minimal() +
   labs(
     title = "Typical Playtime by Genre Group",
-    subtitle = "Median Playtime (minutes) for games with recorded activity",
     x = "Genre Group",
     y = "Median Playtime (Minutes)"
   ) +
@@ -511,14 +523,29 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Me
   theme_minimal() +
   labs(
     title = "Typical Playtime by Genre Group",
-    subtitle = "Median Playtime (minutes) for games with recorded activity",
     x = "Genre Group",
     y = "Median Playtime (Minutes)"
   ) +
   geom_text(aes(label = round(Mean_Playtime, 0)), hjust = -0.1, size = 3.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
+```{r, echo = FALSE}
+genre_playtime_stats$Skewness_Ratio <- genre_playtime_stats$Mean_Playtime / genre_playtime_stats$Median_Playtime
+```
 
+```{r, echo = FALSE}
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Skewness_Ratio), y = Skewness_Ratio)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Skewness Ratio by Genre Group",
+    x = "Genre Group",
+    y = "Skewness Ratio (Minutes)"
+  ) +
+  geom_text(aes(label = round(Skewness_Ratio, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
 
 
 
