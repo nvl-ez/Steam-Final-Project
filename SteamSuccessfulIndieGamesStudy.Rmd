@@ -1315,7 +1315,21 @@ Multicollinearity does not affect the interpretation of price, since log_price h
 After controlling for closely related visibility/quality variables, price has at most a small partial association with owners. This suggests that in the indie market, audience size is driven more by discoverability and perceived value (captured by reviews and engagement signals) than by price alone.
 
 ## Conclussion
+We grouped indie games into three success tiers using clustering, and the separation between tiers was driven most strongly by overall audience approval (pct_pos_total). The distribution is highly uneven: most indie games fall into the unsuccessful or somewhat successful tiers, while the highly successful tier is rare, reinforcing the idea that standout success is uncommon and risk is structurally high in the indie market.
 
+**Does genre matter?**
+Successful games are heavily concentrated in a few genre groups, dominated by Action and Casual, with the most common combination being {action, casual}. Many other frequent pairs include casual as the “bridge” (e.g., tabletop/simulation/strategy + casual), suggesting that successful indies often mix a clear genre identity with accessible play patterns, while still adding depth through RPG/strategy/simulation-style progression.
+
+**Do mechanics matter?**
+The genre->mechanic rules show consistent associations: resource management is strongly linked to simulation/strategy (and action hybrids), while exploration repeatedly complements action combinations (platformer, tabletop, RPG). This supports the idea that successful games often align mechanics with what players expect from that genre blend.
+
+**Do game characteristics matter?**
+The strongest recurring characteristic pattern is multiplayer design that combines Co-op + PvP, while VR-only appears but with low support, suggesting it’s a niche path rather than a mainstream success driver.
+
+**Does pricing matter?**
+Only weakly compared to visibility and engagement signals. In the paid-only regression, price has a small negative association with owners, and its standardized effect is much smaller than review volume, which is by far the strongest correlate of audience size. Multicollinearity mainly affects review/recommendation signals (VIF ≈ 6–7), but price is stable (low VIF) and still relatively minor.
+
+Overall, these results are correlational, not causal—they don’t prove that picking a genre or adding a mechanic causes success. However, they provide practical, evidence-based guidance to understand the market audience and reduce risk, helping us make more informed game-design decisions around genre direction, mechanic fit, feature scope, and pricing expectations.
 
 
 # Can a single game have enough influence to make other games have its tag?
