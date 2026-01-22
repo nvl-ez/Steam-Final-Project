@@ -357,21 +357,25 @@ if (file.exists(file)) {
 Firstly for having a objective view if the genre have truly grown we going to mesure the market share of each genre of each year. The advantage of using this is that the grown of each year is relative to the total grown of the game industry, if we use the raw game numbers we cannot difference if the game have actually grown or it's because the general game market have a growing tendency.
 
 $$
-\tex{Market Share} = \frac{}{}\tex{}
+\text{Market Share} = \frac{\text{Genre Games}}{\text{Total Games}}
+$$
+
+Now let's define some metrics to determine the performance and behavior of the genres. The net growth is the difference between the final market share and the initial market share, with this metric we can see which genre have grown the most. And another metric is the volatility wihch is the sum of all the absolute value of the difference between the previous and current year.
+
+$$
+\text{Net Growth} = \text{Market Share}_\text{final} - \text{Market Share}_{initial}
+$$
+
+$$
+\text{Volatility} = \sum |\Delta \text{Market Share}|
 $$
 
 ```{r, echo = FALSE}
-# 1. Prepare the trend data
 genre_trend_df <- genre_group_coded_steam %>%
-  # Extract year and handle potential date formats
   mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
-  # Filter for realistic timeframe
   filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
-  # Select the release year and the genre group columns we just created
   select(release_year, all_of(names(genres))) %>%
-  # Reshape to long format
   pivot_longer(cols = -release_year, names_to = "Genre", values_to = "HasGenre") %>%
-  # Count occurrences per year
   filter(HasGenre == TRUE) %>%
   group_by(release_year, Genre) %>%
   summarise(Count = n(), .groups = 'drop')
@@ -408,6 +412,7 @@ genre_grow <- market_share %>%
 print(genre_grow)
 ```
 
+Visualization of the top 5 most growth genre and the bottom 5 growth genre:
 
 ```{r, echo = FALSE}
 ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
@@ -418,14 +423,19 @@ ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Ne
                     name = "Growth Type") +
   labs(
     title = "Top 5 and Bottom 5 Genres by Net Growth",
-    subtitle = "Comparing highest vs. lowest performance",
     x = "Genre",
     y = "Net Growth (%)"
   ) +
   theme_minimal()
 ```
 
-```{r}
+We can see a the rise of the casual genre, this can be cause due to playing video game is every time more popular and not only for few nerd thing. And video game is an social activity media between the young people who use chat platforms like Discord and play together, this can explain why the rise of casual games like "Fall Guys", "Lethal Company", "R.E.P.O.", "PEAK", "MIMESIS", ... And the genres like action, RPG, roguelike and platformer are very typical genres of indie games, and indie games occupies the majority of the game publication so it make sense that they are on the top. One interest things is the rise of the horror genre which looks like a niche genre, but I think the rise of the horror game is thanks to the stream culture, because streamer playing horror games is very entertaining for the public and this make those games popular. 
+
+On the other hand, the bottom 3 are music, strategy and tabletop which are niche genres. One interest genre is shooter which have a negative grown, but there's a lot of shooter players and it's one of the most viewed category of Twitch. I think the cause of this phenomenon is that shooter game are very monopolized, because the main category of shooter is the competitive shooter like "CSGO (CS2)", "VALORANT", "APEX", "FORNITE", "PUBG", "R6", ... Because the nature to compete the players tends to play the same games to have a metric to show their skill. So even that the shooter is a big genre with a big community, it actually doesn't grow in term of Market Share because in this genre they have few games but very polished.
+
+
+Visualization the grouth of the genre
+```{r, echo = FALSE}
 positive_genres <- genre_grow %>% filter(Net_Growth > 0) %>% pull(Genre)
 negative_genres <- genre_grow %>% filter(Net_Growth < 0) %>% pull(Genre)
 ```
@@ -438,7 +448,6 @@ ggplot(market_share %>% filter(Genre %in% positive_genres),
   theme_minimal() +
   labs(
     title = "Market Share Trend: Positive Growth Genres",
-    subtitle = "Genres that increased their market footprint",
     x = "Year of Release",
     y = "Market Share (%)",
     color = "Genre"
@@ -454,14 +463,18 @@ ggplot(market_share %>% filter(Genre %in% negative_genres),
   theme_minimal() +
   labs(
     title = "Market Share Trend: Negative Growth Genres",
-    subtitle = "Genres that decreased their market footprint",
     x = "Year of Release",
     y = "Market Share (%)",
     color = "Genre"
   ) +
   scale_x_continuous(breaks = seq(2010, 2024, by = 2))
 ```
+We can see reflected the graph the most volatile genre like action which in 2012 peaked, casual which is in constant rising, platformer which have a peak in 2013 then it went down and later in 2021 it peaked again. For table top it have been decreasing except between 2020 and 2022 it recovered. And finally the strategy game seems to be recoverying since 2016 until 2024 it looks like to stabilize.
 
+In conclusion, the game genre market is very hard to predict because it's mainly influeced by the trend of the people. A very niche genre can become very trendy because some famous have played it, or in that genre has come out a very good game and that game heavily influence back to the genre, like Holow Knogh to metroidvania genre, The binding of Isaac to the roguelike genre, ... For this specific question we have a specific section to answer this.
+
+
+Now let's see how behave the playtime of the players of each genre group, we going to see the mean playtime to have an idea of which genre have more time spended, and median playtime to have a view of a typical player playtime.
 ```{r, echo = FALSE}
 played_games <- genre_group_coded_steam %>%
   filter(average_playtime_forever > 0)
@@ -496,43 +509,41 @@ genre_playtime_stats <- played_games %>%
 ```
 
 ```{r, echo = FALSE}
-# 3. View the summary table
-print(genre_playtime_stats)
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Mean_Playtime)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Mean Playtime by Genre Group",
+    x = "Genre Group",
+    y = "Mean Playtime (Minutes)"
+  ) +
+  geom_text(aes(label = round(Mean_Playtime, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
-
 ```{r, echo = FALSE}
-nrow(played_games)
-```
-
-```{r, echo = FALSE}
-# 4. Visualize the results
 # We use Median here as it's more representative of the "typical" player experience
 ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = Median_Playtime)) +
   geom_col(fill = "steelblue") + 
   coord_flip() +
   theme_minimal() +
   labs(
-    title = "Typical Playtime by Genre Group",
+    title = "Median Playtime by Genre Group",
     x = "Genre Group",
     y = "Median Playtime (Minutes)"
   ) +
   geom_text(aes(label = round(Median_Playtime, 0)), hjust = -0.1, size = 3.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
+We can see the mean playtime is a lot higher than the median playtime, this is sign that the playtime distribution is skewed. Because of the hardcore player that spend a lot more time than the rest of the player which make the mean higher.
 
-```{r, echo = FALSE}
-ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Mean_Playtime)) +
-  geom_col(fill = "steelblue") + 
-  coord_flip() +
-  theme_minimal() +
-  labs(
-    title = "Typical Playtime by Genre Group",
-    x = "Genre Group",
-    y = "Median Playtime (Minutes)"
-  ) +
-  geom_text(aes(label = round(Mean_Playtime, 0)), hjust = -0.1, size = 3.5) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
-```
+Now it's interesting to see which genre have the more hardcore players, we can use the ratio between the mean about the median to calculate the skewness ratio of the genre. If the skewness ratio > 1 means that there's few players that plays a lot making the mean higher.
+
+$$
+\text{Skewness Ratio} = \frac{\text{Mean}}{\text{Median}}
+$$
+Visualization
+
 ```{r, echo = FALSE}
 genre_playtime_stats$Skewness_Ratio <- genre_playtime_stats$Mean_Playtime / genre_playtime_stats$Median_Playtime
 ```
@@ -550,7 +561,7 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Skewness_Ratio), y = S
   geom_text(aes(label = round(Skewness_Ratio, 0)), hjust = -0.1, size = 3.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
-
+We can see all the game have skewness ratio >= 3, that means the playtime of the games by nature will have a small group of player that have a lot more playtime than the normal players. And it's interesting to see that music is a lot higher than the others genre, in fact music have the top 1 mean playtime and the top 10 median playtime. This means that this genre is very niche which the normal players just give it a try and doesn't spend that much playing that a very hardcore player would spend.
 
 
 # Commonalities among successful indie games
