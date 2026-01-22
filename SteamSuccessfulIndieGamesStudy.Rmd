@@ -81,52 +81,58 @@ steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.
 
 # Introduction
 
-```{r, include=FALSE}
-# **IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
+Steam (https://store.steampowered.com/) is the largest digital distribution platform for PC games, hosting thousands of games at all prices. In this project, we work with a large scraped dataset of Steam games (up to 2025) to study two linked phenomena:   (i) which patterns are common among successful indie games, and   (ii) how game genres evolve over time (lifecycle).
 
-# **NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
+## Explanation of the Dataset
 
-#TODO: Xiao arregla el error de `relative_growth_df`
-```
+The core data source is the *Steam Games Dataset* from Kaggle   https://www.kaggle.com/datasets/artermiloff/steam-games-dataset/data, containing scraped information about games published on Steam up to 2025 (metadata, tags/genres, estimated owners, etc.). We complemented and validated certain games using SteamDB (https://steamdb.info/), which provides additional public information and estimations.
 
-## Explanation of the Attributes
+The dataset contains a total of **94,948 observations** and **47 variables**. It includes a mix of numeric values (price, reviews, owner estimates, playtime, etc.) and textual or categorical descriptors (genres, tags, categories, developers, etc.).
 
-The dataset we will be working with contains a total number of 94948 observations and 47 columns or variables. The columns that will be used are described bellow:
-
--   **`appid`**: Unique idetnifier of the game on Steam. [num]
--   **`name`**: Name of the game. [text]
--   **`released_date``**: Represents the date where the game was released. [time]
--   **`required_age``**: Corresponds to the minimum age required to play the game. [num]
--   **`price`**: How much the game costs. If its 0 it means that the game is Free to Play. [num]
--   **`dlc_count`**: Ammount of DLCs (Downloadable Contents) the game has. [num]
--   **`suppport_url`**: URL to the support page of the game. [text]
--   **`windows`**: Determines if the game runs in windows. [categorical]
--   **`mac`**: Determines if the game runs in mac. [categorical]
--   **`linux`**: Determines if the game runs in linux. [categorical]
--   **`metacritic_score`**: Metacritic score based on critcical reviews (reviews from professionalss). By performing an investigation we think that an score of 0 means that when the scraping of the data was done there where no reviews for that game yet. [num]
--   **`achievements`**: Number of achievements the game has. [num]
--   **`recommendations``**: Ammount of user recommendations. [num]
--   **`supported_languages`**: List of languages that the game supports.[**NO SÉ QUE CATEGORÍA DARLE**]
--   **`packages`**: Avaliable packages for the game. It contains the name and a description of the package and the names, descriptions and subprices of the subpackages. [**LO MISMO QUE ARRIBA**]
--   **`Developers`**: List of developers associated with the game. [**LO MISMO QUE ARRIBA**]
--   **`publishers`**: List of publishers associated with the game. [**LO MISMO QUE ARRIBA**]
--   **`categories`**: List of categories that the game has. [**LO MISMO QUE ARRIBA**]
--   **`genres`**: List of genres that the game belongs to. [**LO MISMO QUE ARRIBA**]
--   **`positive`**: Ammount of positive votes the game has. [num]
--   **`negative`**: Ammount of negative votes the game has. [num]
--   **`estimated_owners`**: Estimated owners of the game. [text]
--   **`average_playtime_forever`**: Average playtime since March 2009 measured in minutes. [num]
--   **`average_playtime_2weeks`**: Average playtime in the last two weeks measured in minutes. [num]
--   **`median_playtime_forever`**: Median playtime since March 2009 measured in minutes. [num]
--   **`median_playtime_2weeks`**: Median playtime in the last two weeks measured in minutes.[num]
--   **`peak_ccu`**: Number of current users playing the day before the data was scrapped. [num]
--   **`tags`**: List of tags the game has with its name and its key. [**NO SE QUE CATEGORIA DARLE**]
--   **`pct_pos_total`**: Percentage of all reviews that are positive. [num]
--   **`num_reviews_total`**: Nummber of the total reviews the game has. [num]
+- **appid**: Unique identifier of the game on Steam. *(numeric)*  
+- **name**: Name of the game. *(text)*  
+- **release_date**: Date when the game was released. *(time)*  
+- **required_age**: Minimum age required to play the game. *(numeric)*  
+- **price**: Game price; 0 indicates Free-to-Play. *(numeric)*  
+- **dlc_count**: Number of downloadable contents (DLCs). *(numeric)*  
+- **support_url**: URL to the game’s support page. *(text)*  
+- **windows, mac, linux**: Supported platforms. *(categorical)*  
+- **metacritic_score**: Metacritic score based on professional reviews. *(numeric)*
+- **achievements**: Number of achievements. *(numeric)*  
+- **recommendations**: Number of user recommendations. *(numeric)*  
+- **supported_languages**: Languages supported by the game. *(text)*  
+- **packages**: Available packages and subpackages for the game. *(text)*  
+- **developers**: Developers associated with the game. *(text)*  
+- **publishers**: Publishers associated with the game. *(text)*  
+- **categories**: Steam categories of the game. *(text)*  
+- **genres**: Steam genres of the game. *(text)*  
+- **positive**: Number of positive user reviews. *(numeric)*  
+- **negative**: Number of negative user reviews. *(numeric)*  
+- **estimated_owners**: Estimated number of owners. *(numeric)*  
+- **average_playtime_forever**: Average playtime since March 2009 (minutes). *(numeric)*  
+- **average_playtime_2weeks**: Average playtime in the last two weeks (minutes). *(numeric)*  
+- **median_playtime_forever**: Median playtime since March 2009 (minutes). *(numeric)*  
+- **median_playtime_2weeks**: Median playtime in the last two weeks (minutes).* (numeric)*  
+- **peak_ccu**: Peak concurrent users on the day before scraping. *(numeric)*  
+- **tags**: List of user-defined tags with names and keys. *(text)*  
+- **pct_pos_total**: Percentage of positive reviews. *(numeric)*  
+- **num_reviews_total**: Total number of reviews. *(numeric)* 
 
 ## Objectives
 
-**TODO: ADD OBJECTIVES OF STUDY**
+The objective of this project is to analyse the Steam video game ecosystem with a focus on indie titles, using data mining and exploratory data analysis techniques to extract interpretable and actionable insights.
+
+1. **Prepare and structure the Steam dataset for analysis** by identifying relevant variables, handling missing, duplicated, and inconsistent values, and formatting raw attributes for data mining techniques.
+
+2. **Analyze long-term genre dynamics on Steam** by studying how grouped game genres evolve over time in terms of market share and player engagement.
+
+3. **Identify common patterns among successful indie games** by constructing an operational proxy for success using clustering over engagement and market signals, and then mining frequent genre, mechanic, and characteristic combinations within the successful subset.
+
+4. **Evaluate the role of pricing and visibility** by studying the relationship between price, estimated owners, and engagement indicators using multivariate regression.
+
+5. **Study the influence of successful indie games on genre and tag evolution** through targeted case studies that analyze changes in tag usage before and after the release of highly influential titles.
+
+The goal is not to define rules for success, but to discover recurring patterns and associations that help better understand the indie game market and support game design decisions.
 
 # Procesing de data
 
@@ -185,8 +191,7 @@ cleaned_steam <- cleaned_steam %>%
     estimated_owners,
     "estimated_owners_min",
     "estimated_owners_max"
-  ) %>%
-  select(-estimated_owners)
+  )
 ```
 
 
@@ -607,7 +612,7 @@ Steam has done the hard work for us by including “Indie” as a genre/tag (and
 indie <- c("Crowdfunded", "Kickstarter", "Indie")
 indie_pattern <- str_c(indie, collapse = "|")
 
-indie_games <- steam %>% 
+indie_games <- cleaned_steam %>% 
   filter(
     if_any(
       c(categories, genres, tags),
@@ -795,6 +800,7 @@ cluster_summary_long %>%
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 15, hjust = 1))
 ```
+
 A key takeaway from the cluster sizes is that the distribution is highly imbalanced: a large share of games are concentrated in the lower-to-mid tiers, while the top tier contains only a small number of games. In this run, the lowest tier accounts for `r scales::percent(cluster_summary$prop[1], accuracy = 0.1)`, whereas the highest tier represents only `r scales::percent(tail(cluster_summary$prop, 1), accuracy = 0.1)` of indie games.
 ```{r, echo = FALSE}
 # Plot number of games per cluster (count distribution)
@@ -810,6 +816,7 @@ cluster_summary %>%
   ) +
   theme_minimal()
 ```
+
 Since the clusters are interpretable and separable (both visually and by the discriminant variable test), we use them to define a successful subset and proceed with pattern mining in the next sections.
 
 ## Genre study
@@ -933,8 +940,10 @@ genre_counts <- indie_games_genre %>%
 most_common_genre <- genre_counts$genre[1]
 most_common_genre_n <- genre_counts$count[1]
 ```
+
 ### Most common genre combinations (frequent itemsets)
 The table below lists the most frequent genre combinations among successful games (support = proportion of successful games containing that combination).
+
 ```{r, echo = FALSE}
 genre_top <- head(sort(genre_itemsets, by = "support"), 30)
 genre_df  <- as(genre_top, "data.frame")
@@ -950,6 +959,7 @@ ggplot(genre_df, aes(x = reorder(items, support), y = support)) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 8))
 ```
+
 ### Genre prevalence
 ```{r, echo = FALSE}
 genre_counts %>%
@@ -964,6 +974,7 @@ genre_counts %>%
   ) +
   theme_minimal()
 ```
+
 ### Conclussions from genres
 The grouped genre counts show a highly concentrated distribution: successful indie games most frequently fall under action and casual, followed by a second tier including RPG, tabletop/puzzle, strategy, and simulation. This suggests that, within the successful segment, many games belong to genres that are either broad and audience-friendly (action/casual), or built around deep progression and replayability (RPG/strategy/simulation/tabletop).
 
