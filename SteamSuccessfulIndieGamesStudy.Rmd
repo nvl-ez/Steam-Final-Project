@@ -59,6 +59,7 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(purrr)
+
 # Dates & time
 library(lubridate)
 
@@ -72,7 +73,8 @@ library(arulesViz)
 
 # Tidy evaluation (used in helpers)
 library(rlang)
-
+library(knitr)
+library(tibble)
 
 steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.strings = FALSE)
 ```
@@ -83,6 +85,8 @@ steam = read.csv("data/kaggle_march2025_full.csv", stringsAsFactors = FALSE, na.
 # **IMPORTANTE**: Para cuando hagamos la presentación/pdf estaría bien comentar (el profesor dijo que lo valorará positivamente) el proceso de investigación para saber que significa cada variable, yo por ahora (a parte de la página de Kaggle) he encontrado esto <https://github.com/FronkonGames/Steam-Games-Scraper>
 
 # **NOTA**: Esta no debería serla versión definitiva, creo que explicar 47 variables se nos va de tamño que flipas, lo he hecho por si os sirviera o por si al final si que dejamos la explicación de todas, en cualquier caso he hecho un drop de columnas que yo he creído que no ibamos a usar, una vez vayais acabando lo vuestro voy viendo a ver cuales usais
+
+#TODO: Xiao arregla el error de `relative_growth_df`
 ```
 
 ## Explanation of the Attributes
@@ -165,7 +169,7 @@ cleaned_steam <- steam %>%
   filter(!is.na(release_date))
 ```
 
-```{r}
+```{r, echo = FALSE}
 add_range_minmax <- function(df, column, min_column, max_column) {
   column_quo <- enquo(column)
 
@@ -193,59 +197,9 @@ str(cleaned_steam)
 summary(cleaned_steam)
 ```
 
+# Exploratory Data Analysis
 
-# Requeriments for Successful Indie Games
-
-Create helper function for extracting unique elements from entries with a list of values. All lists follow the same pattern: `['el1', 'el2',...]` being `[]` for empty lists.
-
-```{r}
-# Funcion helper 
-get_unique_list_values <- function(x) {
-  x <- x[x != "[]"]
-  x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
-  x <- gsub("['\"]", "", x)# quitar ' y "
-  
-  elements <- strsplit(x, ",") # dividr por comas
-
-  vals <- trimws(unlist(elements, use.names = FALSE)) # aplanar y trim
-  vals <- vals[vals != ""]
-  
-  sort(unique(vals))
-}
-```
-
-Create helper function for extracting unique tags. These are formatted differently and follow dictionary-like pattern where each element is a key-value pair being `[]` for empty entries.
-```{r}
-get_unique_dict_keys <- function(x) {
-  x <- x[x != "[]"]
-  
-  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
-  
-  keys <- trimws(unlist(keys_list, use.names = FALSE))
-  keys <- keys[keys != ""]
-  sort(unique(keys))
-}
-```
-
-
-## Obtain Unique values for different columns
-```{r}
-steam_categories <- get_unique_list_values(cleaned_steam$categories)
-steam_categories
-```
-```{r}
-steam_genres <- get_unique_list_values(cleaned_steam$genres)
-steam_genres
-```
-
-
-```{r}
-steam_tags <- get_unique_dict_keys(cleaned_steam$tags)
-steam_tags
-```
-
-From steam's Categories, Genres and Tags, 3 subsets have been created with samples interesting for this study. Given steam's laxity at classifying these values, the 3 subsets have been created with our own interpretation. Additionally, tags that reffer to non-game software have been ignored.
-```{r}
+```{r, echo = FALSE}
 #Genres
 action_genre <- c(
   # Action
@@ -326,74 +280,736 @@ genres <- list(
   music = music_genre,
   walking_sim = walking_sim_genre
 )
+```
+
+```{r, echo = FALSE}
+make_group_flag <- function(data, values, group_name,
+                            categories_col = "categories",
+                            genres_col = "genres",
+                            tags_col = "tags") {
+
+  parse_list_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+    vals[vals != ""]
+  }
+
+  parse_dict_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]" || x == "" || x == "{}") return(character(0))
+
+    m <- gregexpr("(['\"])([^'\"]+)\\1\\s*:", x, perl = TRUE)
+    pieces <- regmatches(x, m)[[1]]
+    if (length(pieces) == 0) return(character(0))
+
+    keys <- sub("^(['\"])([^'\"]+)\\1\\s*:$", "\\2", pieces, perl = TRUE)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+
+  values_set <- trimws(unique(values))
+
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    cats <- parse_list_row(data[[categories_col]][i])
+    gens <- parse_list_row(data[[genres_col]][i])
+    tgs  <- parse_dict_row(data[[tags_col]][i])
+    tokens <- unique(c(cats, gens, tgs))
+    tokens
+  })
+
+  flag <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
+
+  data[[group_name]] <- flag
+
+  data
+}
+```
+
+Now we going to explore the market share of each genre and how it evolves through time, and the playtime of each genre trying to see which are the genres with more hardcore players.
+
+```{r, echo = FALSE}
+
+file <- file.path("data", "genre_group_coded_steam.rds")
+
+if (file.exists(file)) {
+  genre_group_coded_steam <- readRDS(file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+  genre_group_coded_steam <- cleaned_steam
+
+  for (g_name in names(genres)) {
+    genre_group_coded_steam <- make_group_flag(
+      genre_group_coded_steam, 
+      genres[[g_name]], 
+      g_name
+    )
+  }
+  
+  genre_group_coded_steam <- genre_group_coded_steam %>% select(-tags, -categories, -genres)
+  
+  saveRDS(genre_group_coded_steam, file)
+}
+```
+
+Firstly for having a objective view if the genre have truly grown we going to mesure the market share of each genre of each year. The advantage of using this is that the grown of each year is relative to the total grown of the game industry, if we use the raw game numbers we cannot difference if the game have actually grown or it's because the general game market have a growing tendency.
+
+$$
+\text{Market Share} = \frac{\text{Genre Games}}{\text{Total Games}}
+$$
+
+Now let's define some metrics to determine the performance and behavior of the genres. The net growth is the difference between the final market share and the initial market share, with this metric we can see which genre have grown the most. And another metric is the volatility wihch is the sum of all the absolute value of the difference between the previous and current year.
+
+$$
+\text{Net Growth} = \text{Market Share}_\text{final} - \text{Market Share}_{initial}
+$$
+
+$$
+\text{Volatility} = \sum |\Delta \text{Market Share}|
+$$
+
+```{r, echo = FALSE}
+genre_trend_df <- genre_group_coded_steam %>%
+  mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
+  filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
+  select(release_year, all_of(names(genres))) %>%
+  pivot_longer(cols = -release_year, names_to = "Genre", values_to = "HasGenre") %>%
+  filter(HasGenre == TRUE) %>%
+  group_by(release_year, Genre) %>%
+  summarise(Count = n(), .groups = 'drop')
+```
+
+```{r, echo = FALSE}
+yearly_baseline <- genre_group_coded_steam %>%
+  mutate(release_year = as.numeric(str_extract(release_date, "\\d{4}"))) %>%
+  filter(!is.na(release_year), release_year >= 2010, release_year <= 2024) %>%
+  group_by(release_year) %>%
+  summarise(Total_Games_Yearly = n(), .groups = 'drop')
+```
+
+```{r, echo = FALSE}
+market_share <- genre_trend_df %>%
+  left_join(yearly_baseline, by = "release_year") %>%
+  mutate(Market_Share = (Count / Total_Games_Yearly) * 100)
+```
+
+```{r, echo = FALSE}
+genre_grow <- market_share %>%
+  arrange(Genre, release_year) %>% 
+  group_by(Genre) %>%
+  mutate(
+    yearly_change = Market_Share - lag(Market_Share),
+    abs_yearly_change = abs(yearly_change)
+  ) %>%
+  summarize(
+    Total_Volatility = sum(abs_yearly_change, na.rm = TRUE),
+    Net_Growth = last(Market_Share) - first(Market_Share)
+  ) %>%
+  arrange(desc(Total_Volatility))
+
+print(genre_grow)
+```
+
+Visualization of the top 5 most growth genre and the bottom 5 growth genre:
+
+```{r, echo = FALSE}
+ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "salmon"), 
+                    labels = c("Negative", "Positive"), 
+                    name = "Growth Type") +
+  labs(
+    title = "Top 5 and Bottom 5 Genres by Net Growth",
+    x = "Genre",
+    y = "Net Growth (%)"
+  ) +
+  theme_minimal()
+```
+
+We can see a the rise of the casual genre, this can be cause due to playing video game is every time more popular and not only for few nerd thing. And video game is an social activity media between the young people who use chat platforms like Discord and play together, this can explain why the rise of casual games like "Fall Guys", "Lethal Company", "R.E.P.O.", "PEAK", "MIMESIS", ... And the genres like action, RPG, roguelike and platformer are very typical genres of indie games, and indie games occupies the majority of the game publication so it make sense that they are on the top. One interest things is the rise of the horror genre which looks like a niche genre, but I think the rise of the horror game is thanks to the stream culture, because streamer playing horror games is very entertaining for the public and this make those games popular. 
+
+On the other hand, the bottom 3 are music, strategy and tabletop which are niche genres. One interest genre is shooter which have a negative grown, but there's a lot of shooter players and it's one of the most viewed category of Twitch. I think the cause of this phenomenon is that shooter game are very monopolized, because the main category of shooter is the competitive shooter like "CSGO (CS2)", "VALORANT", "APEX", "FORNITE", "PUBG", "R6", ... Because the nature to compete the players tends to play the same games to have a metric to show their skill. So even that the shooter is a big genre with a big community, it actually doesn't grow in term of Market Share because in this genre they have few games but very polished.
 
 
-#Mechanics
-resource_management_mechanic <- c(
-  # Economy, building, resources
-  "Base-Building", "Building", "Resource Management", "Inventory Management",
-  "Crafting", "Automation", "Mining", "Farming")
+Visualization the grouth of the genre
+```{r, echo = FALSE}
+positive_genres <- genre_grow %>% filter(Net_Growth > 0) %>% pull(Genre)
+negative_genres <- genre_grow %>% filter(Net_Growth < 0) %>% pull(Genre)
+```
 
-customization_mechanic <- c(
-  # Customization
-  "Gun Customization", "Character Customization")
-movement_mechanic <- c(
-  # Movement
-  "Stealth", "Parkour", "Swordplay", "Archery", "Sniper")
-physics_mechanic <- c(
-  # Physics
-  "Physics", "Destruction")
-failure_mechanic <- c(
-  # Failure
-  "Permadeath", "Perma Death")
-procedural_mechanic <- c(
-  # Procedural
-  "Procedural Generation", "Music-Based Procedural Generation")
-turn_mechanic <- c(
-  # Turns
-  "Turn-Based", "Turn-Based Combat", "Turn-Based Tactics",
-  "Real-Time", "Real-Time with Pause",
-  "Time Manipulation", "Time Management", "Time Attack")
-spatial_rules_mechanic <- c(
-  # Spatial rules
-  "Grid-Based Movement", "Hex Grid")
-quicktime_events_mechanic <- c(
-  # QTE
-  "Quick-Time Events")
-narrative_mechanic <- c(
-  # Narrative logic
-  "Choices Matter", "Multiple Endings", "Nonlinear")
-exploration_mechanic <- c(
-  # Exploration & structure
-  "Exploration", "Dungeon Crawler", "Collectathon",
-  "Boss Rush", "Side Scroller", "Loot")
-social_mechanic <- c(
-  # Social deduction
-  "Social Deduction")
-card_mechanic <- c(
-  # Card/Deck mechanics
-  "Deckbuilding", "Card Battler")
-programming_mechanic <- c(
-  # Programming
-  "Programming", "Coding")
-economy_mechanic <- c(
-  # Economy
-  "Trading", "Economy", "Capitalism",
-  "Diplomacy")
-modding_mechanic <- c(
-  # Modding / creation
-  "Level Editor", "Moddable", "Mod")
-tutorial_mechanic <- c(
-  # Tutorial
-  "Tutorial")
+```{r, echo = FALSE}
+ggplot(market_share %>% filter(Genre %in% positive_genres), 
+       aes(x = release_year, y = Market_Share, color = Genre)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 1.5) +
+  theme_minimal() +
+  labs(
+    title = "Market Share Trend: Positive Growth Genres",
+    x = "Year of Release",
+    y = "Market Share (%)",
+    color = "Genre"
+  ) +
+  scale_x_continuous(breaks = seq(2010, 2024, by = 2))
+```
+
+```{r, echo = FALSE}
+ggplot(market_share %>% filter(Genre %in% negative_genres), 
+       aes(x = release_year, y = Market_Share, color = Genre)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 1.5) +
+  theme_minimal() +
+  labs(
+    title = "Market Share Trend: Negative Growth Genres",
+    x = "Year of Release",
+    y = "Market Share (%)",
+    color = "Genre"
+  ) +
+  scale_x_continuous(breaks = seq(2010, 2024, by = 2))
+```
+We can see reflected the graph the most volatile genre like action which in 2012 peaked, casual which is in constant rising, platformer which have a peak in 2013 then it went down and later in 2021 it peaked again. For table top it have been decreasing except between 2020 and 2022 it recovered. And finally the strategy game seems to be recoverying since 2016 until 2024 it looks like to stabilize.
+
+In conclusion, the game genre market is very hard to predict because it's mainly influeced by the trend of the people. A very niche genre can become very trendy because some famous have played it, or in that genre has come out a very good game and that game heavily influence back to the genre, like Holow Knogh to metroidvania genre, The binding of Isaac to the roguelike genre, ... For this specific question we have a specific section to answer this.
+
+
+Now let's see how behave the playtime of the players of each genre group, we going to see the mean playtime to have an idea of which genre have more time spended, and median playtime to have a view of a typical player playtime.
+```{r, echo = FALSE}
+played_games <- genre_group_coded_steam %>%
+  filter(average_playtime_forever > 0)
+```
+
+```{r, echo = FALSE}
+genre_playtime_stats <- played_games %>%
+  # Select playtime and the specific genre group columns created earlier
+  select(average_playtime_forever, all_of(names(genres))) %>%
+  
+  # Reshape to long format: one row per (Game, Genre Group)
+  pivot_longer(
+    cols = all_of(names(genres)), 
+    names_to = "Genre_Group", 
+    values_to = "HasGenre"
+  ) %>%
+  
+  # Keep only the rows where the game belongs to that genre group
+  filter(HasGenre == TRUE) %>%
+  
+  # Group by the custom genre groups and calculate stats
+  group_by(Genre_Group) %>%
+  summarise(
+    Mean_Playtime = mean(average_playtime_forever, na.rm = TRUE),
+    Median_Playtime = median(average_playtime_forever, na.rm = TRUE),
+    Total_Games = n(),
+    .groups = 'drop'
+  ) %>%
+  
+  # Sort by Median Playtime (usually better for playtime due to outliers)
+  arrange(desc(Median_Playtime))
+```
+
+```{r, echo = FALSE}
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Mean_Playtime)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Mean Playtime by Genre Group",
+    x = "Genre Group",
+    y = "Mean Playtime (Minutes)"
+  ) +
+  geom_text(aes(label = round(Mean_Playtime, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+```{r, echo = FALSE}
+# We use Median here as it's more representative of the "typical" player experience
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = Median_Playtime)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Median Playtime by Genre Group",
+    x = "Genre Group",
+    y = "Median Playtime (Minutes)"
+  ) +
+  geom_text(aes(label = round(Median_Playtime, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+We can see the mean playtime is a lot higher than the median playtime, this is sign that the playtime distribution is skewed. Because of the hardcore player that spend a lot more time than the rest of the player which make the mean higher.
+
+Now it's interesting to see which genre have the more hardcore players, we can use the ratio between the mean about the median to calculate the skewness ratio of the genre. If the skewness ratio > 1 means that there's few players that plays a lot making the mean higher.
+
+$$
+\text{Skewness Ratio} = \frac{\text{Mean}}{\text{Median}}
+$$
+Visualization
+
+```{r, echo = FALSE}
+genre_playtime_stats$Skewness_Ratio <- genre_playtime_stats$Mean_Playtime / genre_playtime_stats$Median_Playtime
+```
+
+```{r, echo = FALSE}
+ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Skewness_Ratio), y = Skewness_Ratio)) +
+  geom_col(fill = "steelblue") + 
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Skewness Ratio by Genre Group",
+    x = "Genre Group",
+    y = "Skewness Ratio (Minutes)"
+  ) +
+  geom_text(aes(label = round(Skewness_Ratio, 0)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+We can see all the game have skewness ratio >= 3, that means the playtime of the games by nature will have a small group of player that have a lot more playtime than the normal players. And it's interesting to see that music is a lot higher than the others genre, in fact music have the top 1 mean playtime and the top 10 median playtime. This means that this genre is very niche which the normal players just give it a try and doesn't spend that much playing that a very hardcore player would spend.
+
+
+# Commonalities among successful indie games
+```{r commonalities_setup, include=FALSE}
+#-------------------------------------------------
+# Funcion helpers
+#-------------------------------------------------
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+
+get_unique_list_values <- function(x) {
+  x <- x[x != "[]"]
+  x <- gsub("^\\[|\\]$", "", x) # quitar [ y ]
+  x <- gsub("['\"]", "", x)# quitar ' y "
+  
+  elements <- strsplit(x, ",") # dividr por comas
+
+  vals <- trimws(unlist(elements, use.names = FALSE)) # aplanar y trim
+  vals <- vals[vals != ""]
+  
+  sort(unique(vals))
+}
+```
+Indie game development is high-risk: budgets are limited, marketing reach is uncertain, and audience discovery can be unpredictable. This section explores commonalities across successful indie games, with two practical goals:
+* **Understand market audience:** identify what combinations of genres/mechanics tend to co-occur among games that reach larger audiences.
+* **Reduce risk for game-making:** extract patterns that can guide design decisions without prescribing a single “correct” formula.
+
+
+We focus on four questions:
+* **Does genre matter?**
+* **Do mechanics matter (especially in combination with genre)?**
+* **Do game characteristics matter (e.g., camera, player modes, VR)?**
+* **Does pricing matter (relationship with owners)?**
+
+## Selecting indie games
+Steam has done the hard work for us by including “Indie” as a genre/tag (and related tags such as “Crowdfunded” / “Kickstarter”). Given that these tags have been assigned by users world-wide, we can agree on these tags representing widely-considered indie games. We filter the dataset to games containing any of these signals in Genres, Tags or Categories.
+```{r, echo = FALSE}
+indie <- c("Crowdfunded", "Kickstarter", "Indie")
+indie_pattern <- str_c(indie, collapse = "|")
+
+indie_games <- steam %>% 
+  filter(
+    if_any(
+      c(categories, genres, tags),
+      ~ str_detect(.x, indie_pattern)
+    )
+  )
+```
+
+## Determining “successful” indie games
+Determining “successful” indie games
+
+“Success” is not directly labeled in the dataset, so we build an operational proxy based on market and engagement signals. The main goal of this step is to isolate a subset of indie games that consistently perform better than the rest, so that later sections (association rules and plots) focus on patterns that appear among higher-impact titles.
+
+### Clustering approach
+We cluster indie games using a set of numeric variables that capture outcomes and engagement (e.g., recommendations, reviews, playtime, peak CCU, owners/revenue estimates, price, and platform availability). Before fixing the final configuration, we experimented with multiple numbers of clusters:
+* **2 clusters** (attempting to represent successful vs not successful)
+* **3 clusters** (attempting to represent massively successful, successful and not successful)
+* **4 clusters**
+* **5 clusters**
+* **10 clusters**
+
+The best segmentation for interpretability and separation was obtained with 3 clusters.
+
+In our dataset, representative examples of these mid/high clusters included games such as Deceit, Graveyard Keeper, Unturned (mid-tier), and Stardew Valley, Subnautica, Terraria (top-tier). These examples illustrate how the clustering captures meaningful outcome tiers rather than arbitrary partitions.
+
+We implement the final clustering using k-means with k = 3 on standardized variables.
+```{r, echo = FALSE}
+indie_games_data <- indie_games %>%
+  select(
+    appid, name, price, dlc_count, windows, mac, linux,
+    achievements, recommendations, supported_languages,
+    positive, negative, estimated_owners,
+    average_playtime_forever, median_playtime_forever,
+    peak_ccu, pct_pos_total, num_reviews_total
+  )
+
+add_column_count <- function(df, column, new_col) {
+  column_quo <- rlang::enquo(column)
+  df %>%
+    mutate(
+      "{new_col}" := dplyr::case_when(
+        !!column_quo == "[]" ~ 0L,
+        TRUE ~ str_count(!!column_quo, "'") %/% 2L
+      )
+    )
+}
+
+indie_games_data <- indie_games_data %>%
+  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>%
+  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>%
+  mutate(windows = as.integer(windows == "True")) %>%
+  mutate(mac = as.integer(mac == "True")) %>%
+  mutate(linux = as.integer(linux == "True")) %>%
+  select(-estimated_owners)
+
+indie_games_cluster <- indie_games_data %>%
+  add_column_count(supported_languages, "languages_count") %>%
+  select(-appid, -name, -supported_languages)
+
+# Standardize continuous numeric features
+indie_games_cluster <- indie_games_cluster %>%
+  mutate(
+    across(
+      where(is.numeric) & !all_of(c("windows", "mac", "linux")),
+      ~ as.numeric(scale(.))
+    )
+  )
+
+# Final clustering choice: k = 3
+km3 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
+indie_games_data$success_cluster <- km3$cluster
+
+# Identify which variable best separates clusters (highest ANOVA F-statistic)
+vars <- c(
+  "price", "dlc_count", "windows", "mac", "linux",
+  "achievements", "recommendations",
+  "positive", "negative",
+  "average_playtime_forever", "median_playtime_forever",
+  "peak_ccu",
+  "pct_pos_total", "num_reviews_total",
+  "estimated_owners_min", "estimated_owners_max",
+  "estimated_revenue"
+)
+
+f_stats <- purrr::map_dbl(vars, function(v) {
+  form <- as.formula(paste(v, "~ success_cluster"))
+  aov_res <- aov(form, data = indie_games_data)
+  summary(aov_res)[[1]][["F value"]][1]
+})
+
+most_discriminative_var <- vars[which.max(f_stats)]
+
+cluster_summary <- indie_games_data %>%
+  group_by(success_cluster) %>%
+  summarise(
+    mean_val = mean(as.numeric(.data[[most_discriminative_var]]), na.rm = TRUE),
+    median_val = median(as.numeric(.data[[most_discriminative_var]]), na.rm = TRUE),
+    n_games = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(mean_val)
+
+# Assign human-readable tier labels based on the mean of the discriminant variable
+cluster_summary <- cluster_summary %>%
+  mutate(tier = c("Unsuccessful", "Somewhat successful", "Highly successful"))
+
+cluster_labels <- setNames(cluster_summary$tier, cluster_summary$success_cluster)
+
+# Define “successful” as the upper two clusters (mid + top tiers)
+top2_clusters <- cluster_summary %>%
+  slice_tail(n = 2) %>%
+  pull(success_cluster)
+
+indie_games <- indie_games %>%
+  mutate(success_cluster = km3$cluster) %>%
+  mutate(successful = success_cluster %in% top2_clusters) %>%
+  select(-success_cluster)
+
+success_n <- sum(indie_games$successful, na.rm = TRUE)
+success_rate <- success_n / nrow(indie_games)
+```
+
+Using this proxy, `r scales::comma(success_n)` games are labeled successful (`r scales::percent(success_rate, accuracy = 0.1)` of indie games).
+
+### Validation: do clusters separate meaningfully?
+Because clustering is unsupervised, we validate quality using a simple but practical hypothesis:
+*If the most discriminant variable is unable to separate the clusters, then the clustering is likely not meaningful.*
+We therefore compute the variable that best differentiates the clusters (highest ANOVA F-statistic) and verify that it produces a clear separation across groups.
+
+In our case, the most discriminant variable is `r most_discriminative_var` and it produces a clean ordering between the three clusters, which supports using this partition in the rest of the report.
+
+As an additional sanity check, we compute a global silhouette score on a random sample of games in the standardized feature space. Silhouette values closer to 1 indicate well-separated clusters, values near 0 indicate overlap, and negative values suggest poor assignments.
+```{r, echo = FALSE}
+n_all <- nrow(indie_games_cluster)
+idx <- sample(seq_len(n_all), size = min(5000, n_all))
+
+x_s <- as.matrix(indie_games_cluster[idx, , drop = FALSE])
+cl_s <- km3$cluster[idx]
+
+# Euclidean distance on standardized features
+D <- dist(x_s)
+
+sil <- cluster::silhouette(cl_s, D)
+silhouette_avg <- mean(sil[, "sil_width"])
+```
+The average silhouette score on the sample is `r round(silhouette_avg, 3)`.
+
+### Cluster interpretation
+The figure below summarizes the mean and median values of the discriminant variable (`r most_discriminative_var`) across clusters, alongside the number of games per tier.
+
+In our run, the discriminant variable is `r most_discriminative_var`, which acts as a strong quality/visibility signal: the unsuccessful long-tail cluster concentrates near the lowest values, while the two top-tier cluster achieves the highest values, separating games with limited traction from games with stable success.
+```{r, echo = FALSE}
+# Plot the cluster summary (mean + median of the most discriminant variable)
+cluster_summary_long <- cluster_summary %>%
+  select(success_cluster, tier, mean_val, median_val, n_games) %>%
+  tidyr::pivot_longer(
+    cols = c(mean_val, median_val),
+    names_to = "statistic",
+    values_to = "value"
+  ) %>%
+  mutate(
+    statistic = dplyr::recode(statistic, mean_val = "Mean", median_val = "Median"),
+    cluster = paste0("Cluster ", success_cluster, " — ", tier)
+  )
+
+cluster_summary_long %>%
+  ggplot(aes(x = reorder(cluster, value), y = value, shape = statistic, group = statistic)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_text(
+    data = cluster_summary %>%
+      mutate(cluster = paste0("Cluster ", success_cluster, " — ", tier)),
+    aes(x = reorder(cluster, mean_val), y = mean_val, label = paste0("n=", n_games)),
+    inherit.aes = FALSE,
+    vjust = -0.8,
+    size = 3
+  ) +
+  scale_y_continuous(breaks = pretty_breaks(), expand = expansion(mult = c(0.05, 0.18))) +
+  labs(
+    title = paste("Cluster summary using", most_discriminative_var),
+    subtitle = "Points show mean and median of the most discriminant variable per cluster",
+    x = NULL,
+    y = paste("Value of", most_discriminative_var)
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 15, hjust = 1))
+```
+A key takeaway from the cluster sizes is that the distribution is highly imbalanced: a large share of games are concentrated in the lower-to-mid tiers, while the top tier contains only a small number of games. In this run, the lowest tier accounts for `r scales::percent(cluster_summary$prop[1], accuracy = 0.1)`, whereas the highest tier represents only `r scales::percent(tail(cluster_summary$prop, 1), accuracy = 0.1)` of indie games.
+```{r, echo = FALSE}
+# Plot number of games per cluster (count distribution)
+cluster_summary %>%
+  mutate(cluster = paste0("Cluster ", success_cluster, " — ", tier)) %>%
+  ggplot(aes(x = reorder(cluster, n_games), y = n_games)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Number of games per cluster",
+    x = NULL,
+    y = "Count of games"
+  ) +
+  theme_minimal()
+```
+Since the clusters are interpretable and separable (both visually and by the discriminant variable test), we use them to define a successful subset and proceed with pattern mining in the next sections.
+
+## Genre study
+Steam genre labels are sometimes inconsistent, so we use a grouped genre taxonomy created for this project (e.g., action, RPG, strategy, platformer, etc.). Each successful game is mapped into one or more of these grouped genres using its Genres/Tags/Categories. The Genres have been described in a previous section of the document. 
+
+Before adopting this approach, we initially attempted to mine association rules directly predicting success, by fixing the right-hand side of the rules to `successful = TRUE`.
+
+However, this produced obscure and highly specific combinations with limited generality: many rules were driven by niche tag mixes or small subsets of games, and they did not reflect the kinds of genre patterns seen in widely recognized successful indie titles.
+
+For that reason, we switched to a more interpretable strategy: First filter the dataset to successful indie games, and then mine frequent itemsets (genre combinations) with sufficient support inside this subset.
+
+This approach still answers our question: *Amongng successful games, what genre combinations are most common?*
+```{r, include = FALSE}
+# --- Helper functions (project-defined) ---
+make_value_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
+  parse_list_row <- function(x) {
+    if (x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",")[[1]])
+    vals[vals != ""]
+  }
+  parse_dict_row <- function(x) {
+    if (x == "[]" || x == "") return(character(0))
+    m <- gregexpr("'[^']+'(?='\\s*:)", x, perl = TRUE)
+    keys <- regmatches(x, m)[[1]]
+    if (length(keys) == 0) return(character(0))
+    keys <- gsub("^'|'$", "", keys)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    unique(c(
+      parse_list_row(data[[categories_col]][i]),
+      parse_list_row(data[[genres_col]][i]),
+      parse_dict_row(data[[tags_col]][i])
+    ))
+  })
+  for (val in values) {
+    data[[val]] <- vapply(tokens_list, function(tokens) val %in% tokens, logical(1))
+  }
+  data
+}
+
+make_group_flag <- function(data, values, group_name,
+                            categories_col = "categories",
+                            genres_col = "genres",
+                            tags_col = "tags") {
+  parse_list_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]") return(character(0))
+    x <- gsub("^\\[|\\]$", "", x)
+    x <- gsub("['\"]", "", x)
+    vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+    vals[vals != ""]
+  }
+  parse_dict_row <- function(x) {
+    x <- as.character(x)
+    if (is.na(x) || x == "[]" || x == "" || x == "{}") return(character(0))
+    m <- gregexpr("(['\"])([^'\"]+)\\1\\s*:", x, perl = TRUE)
+    pieces <- regmatches(x, m)[[1]]
+    if (length(pieces) == 0) return(character(0))
+    keys <- sub("^(['\"])([^'\"]+)\\1\\s*:$", "\\2", pieces, perl = TRUE)
+    keys <- trimws(keys)
+    keys[keys != ""]
+  }
+  values_set <- trimws(unique(values))
+  tokens_list <- lapply(seq_len(nrow(data)), function(i) {
+    unique(c(
+      parse_list_row(data[[categories_col]][i]),
+      parse_list_row(data[[genres_col]][i]),
+      parse_dict_row(data[[tags_col]][i])
+    ))
+  })
+  data[[group_name]] <- vapply(tokens_list, function(tokens) any(tokens %in% values_set), logical(1))
+  data
+}
+
+# Prepare attributes for successful games
+indie_games_attributes <- indie_games %>% select(tags, categories, genres, successful)
+
+successful_indie_games_attributes <- indie_games_attributes %>%
+  filter(successful == TRUE) %>%
+  select(-successful)
+
+# Generate or load Genres dataset (cached to disk)
+out_file <- file.path("data", "indie_games_genre.rds")
+
+if (file.exists(out_file)) {
+  indie_games_genre <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_genre <- successful_indie_games_attributes
+  for (nm in names(genres)) {
+    indie_games_genre <- make_group_flag(
+      data = indie_games_genre,
+      values = genres[[nm]],
+      group_name = nm
+    )
+  }
+  indie_games_genre <- indie_games_genre %>% select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_genre, out_file)
+}
+
+trans_indie_games_genre <- as(indie_games_genre, "transactions")
+
+# Frequent itemsets and top table
+genre_itemsets <- eclat(trans_indie_games_genre, parameter = list(support = 0.10, minlen = 2, maxlen = 4))
+genre_top <- head(sort(genre_itemsets, by = "support"), 15)
+genre_df <- as(genre_top, "data.frame")
+
+# Genre counts
+genre_counts <- indie_games_genre %>%
+  pivot_longer(cols = everything(), names_to = "genre", values_to = "has") %>%
+  group_by(genre) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_genre <- genre_counts$genre[1]
+most_common_genre_n <- genre_counts$count[1]
+```
+### Most common genre combinations (frequent itemsets)
+The table below lists the most frequent genre combinations among successful games (support = proportion of successful games containing that combination).
+```{r, echo = FALSE}
+genre_top <- head(sort(genre_itemsets, by = "support"), 30)
+genre_df  <- as(genre_top, "data.frame")
+
+ggplot(genre_df, aes(x = reorder(items, support), y = support)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top genre combinations (support)",
+    x = NULL,
+    y = "Support"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))
+```
+### Genre prevalence
+```{r, echo = FALSE}
+genre_counts %>%
+  mutate(genre = reorder(genre, count)) %>%
+  ggplot(aes(x = genre, y = count)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Successful: genre counts",
+    x = NULL,
+    y = "Number of games"
+  ) +
+  theme_minimal()
+```
+### Conclussions from genres
+The grouped genre counts show a highly concentrated distribution: successful indie games most frequently fall under action and casual, followed by a second tier including RPG, tabletop/puzzle, strategy, and simulation. This suggests that, within the successful segment, many games belong to genres that are either broad and audience-friendly (action/casual), or built around deep progression and replayability (RPG/strategy/simulation/tabletop).
+
+Looking at frequent genre combinations (Eclat), the strongest result is the pairing {action, casual}, which appears in roughly one quarter of successful games. More generally, casual acts as a “bridge” genre: it appears in many of the top combinations (e.g., tabletop + casual, simulation + casual, strategy + casual, and RPG + casual). This indicates that many successful indie games mix a core genre identity with accessible design traits (short sessions or low entry difficulty).
+
+The second major pattern is that action combines well with several popular genres: action + RPG, action + simulation, action + strategy, action + shooter, and action + platformer all appear as frequent itemsets. This highlights a typical indie design strategy: start from a strong core action loop and enrich it with complementary systems such as progression (RPG), management (simulation/strategy), or movement challenges (platformer).
+
+## Mechanics study 
+Mechanics are stored as list of tags (e.g., resource_management, procedural, narrative, card/deckbuilding, etc.) in the steam dataset so they are first one-hot encoded in a binary manner so the apriori algorithm can be executed over them. 
+Instead of only asking “which mechanics are common?”, we also ask: *Given a genre combination, which mechanics are most strongly associated with it?*
+
+We mine association rules of the form:
+* LHS (antecedent): genre group(s)
+* RHS (consequent): mechanic group
+
+Rules are ranked by lift to highlight mechanics that occur more often than expected within a genre context. The support is set to `0.01` and confidence to `0.3`. Higher values fail to find interesting relationships in the data.
+```{r, echo = FALSE}
+resource_management_mechanic <- c("Base-Building","Building","Resource Management","Inventory Management",
+                                "Crafting","Automation","Mining","Farming")
+customization_mechanic <- c("Gun Customization","Character Customization")
+movement_mechanic <- c("Stealth","Parkour","Swordplay","Archery","Sniper")
+physics_mechanic <- c("Physics","Destruction")
+failure_mechanic <- c("Permadeath","Perma Death")
+procedural_mechanic <- c("Procedural Generation","Music-Based Procedural Generation")
+turn_mechanic <- c("Turn-Based","Turn-Based Combat","Turn-Based Tactics",
+                  "Real-Time","Real-Time with Pause",
+                  "Time Manipulation","Time Management","Time Attack")
+spatial_rules_mechanic <- c("Grid-Based Movement","Hex Grid")
+quicktime_events_mechanic <- c("Quick-Time Events")
+narrative_mechanic <- c("Choices Matter","Multiple Endings","Nonlinear")
+exploration_mechanic <- c("Exploration","Dungeon Crawler","Collectathon",
+                         "Boss Rush","Side Scroller","Loot")
+social_mechanic <- c("Social Deduction")
+card_mechanic <- c("Deckbuilding","Card Battler")
+programming_mechanic <- c("Programming","Coding")
+economy_mechanic <- c("Trading","Economy","Capitalism","Diplomacy")
+modding_mechanic <- c("Level Editor","Moddable","Mod")
+tutorial_mechanic <- c("Tutorial")
 
 mechanics <- list(
-  resource_management = resource_management_mechanic, 
-  customization = customization_mechanic, 
-  movement = movement_mechanic, 
-  physics = physics_mechanic, 
-  failure = failure_mechanic, 
-  procedural = procedural_mechanic, 
+  resource_management = resource_management_mechanic,
+  customization = customization_mechanic,
+  movement = movement_mechanic,
+  physics = physics_mechanic,
+  failure = failure_mechanic,
+  procedural = procedural_mechanic,
   turn = turn_mechanic,
   spatial_rules = spatial_rules_mechanic,
   quicktime_events = quicktime_events_mechanic,
@@ -407,31 +1023,109 @@ mechanics <- list(
   tutorial = tutorial_mechanic
 )
 
-# Characteristics
-camera_characteristic <- c(
-  # Dimensionality & camera
-  "2D", "2.5D", "3D",
-  "Isometric", "Top-Down",
-  "6DOF",
-  "First-Person", "Third Person")
+# Generate or load Mechanics dataset
+out_file <- file.path("data", "indie_games_mechanic.rds")
 
-vr_characteristic <- c(
-  # VR
-  "VR", "VR Only", "Asymmetric VR")
+if (file.exists(out_file)) {
+  indie_games_mechanic <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
 
-players_characteristic <- c(
-  # Player count / mode
-  "Singleplayer",
-  "Multiplayer", "Massively Multiplayer",
-  "Co-op", "Local Co-Op", "Online Co-Op", "Co-op Campaign",
-  "4 Player Local", "Split Screen")
-team_characteristic <- c(
-  # Team/role structure
-  "PvP", "PvE", "Team-Based",
-  "Asynchronous Multiplayer")
-esports_characteristic <- c(
-  # Competitive/e-sports
-  "e-sports")
+  indie_games_mechanic <- successful_indie_games_attributes
+  for (nm in names(mechanics)) {
+    indie_games_mechanic <- make_group_flag(
+      data = indie_games_mechanic,
+      values = mechanics[[nm]],
+      group_name = nm
+    )
+  }
+  indie_games_mechanic <- indie_games_mechanic %>% select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_mechanic, out_file)
+}
+
+trans_indie_games_mechanic <- as(indie_games_mechanic, "transactions")
+
+# Combine genres + mechanics per game
+trans_g <- trans_indie_games_genre
+trans_m <- trans_indie_games_mechanic
+
+g_list <- LIST(trans_g)
+m_list <- LIST(trans_m)
+
+gm_list <- Map(c, g_list, m_list)
+trans_gm <- as(gm_list, "transactions")
+
+# Mine rules: GENRES -> MECHANICS
+rules_gm <- apriori(
+  trans_gm,
+  parameter  = list(supp = 0.01, conf = 0.30, minlen = 3, maxlen = 5, target = "rules"),
+  appearance = list(
+    default = "none",
+    lhs = itemLabels(trans_g),
+    rhs = itemLabels(trans_m)
+  ),
+  control = list(verbose = FALSE)
+)
+
+# Filter rules whose LHS matches one of the top genre itemsets
+top_genre_list <- LIST(items(genre_top))
+top_keys <- vapply(top_genre_list, function(x) paste(sort(x), collapse = "|"), "")
+lhs_keys <- vapply(LIST(lhs(rules_gm)), function(x) paste(sort(x), collapse = "|"), "")
+rules_sel <- rules_gm[lhs_keys %in% top_keys]
+
+# Mechanic counts
+mechanic_counts <- indie_games_mechanic %>%
+  pivot_longer(cols = everything(), names_to = "mechanic", values_to = "has") %>%
+  group_by(mechanic) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_mech <- mechanic_counts$mechanic[1]
+most_common_mech_n <- mechanic_counts$count[1]
+
+# Table of the strongest rules
+rules_sel_df <- as(rules_sel, "data.frame") %>%
+  arrange(desc(lift)) %>%
+  select(rules, support, confidence, lift) %>%
+  head(15)
+```
+```{r, echo=FALSE}
+plot(
+  rules_sel,
+  method = "scatterplot",
+  measure = c("support", "confidence"),
+  shading = "lift"
+)
+```
+
+```{r, echo=FALSE}
+knitr::kable(
+  rules_sel_df,
+  digits = 3,
+  col.names = c("Rule (Genres -> Mechanic)", "Support", "Confidence", "Lift"),
+  caption = "Top genre->mechanic rules among successful indie games (ranked by lift)"
+)
+```
+### Conclussions from genres and mechanic rules
+A first clear pattern is the strength of resource management inside strategy/simulation hybrids. The rule {simulation, strategy} -> {resource_management} has the highest lift (around 3.75), meaning that management-oriented mechanics are several times more likely than expected when a game sits at the intersection of these genres. Similar high-lift rules also appear for {action, strategy} and {action, simulation}, suggesting that successful hybrids often combine an action layer with systems such as crafting, automation, building, or economy loops.
+
+A second pattern is that exploration frequently complements action-driven genres. Rules such as {action, platformer} -> {exploration}, {action, tabletop} -> {exploration}, and {action, RPG} -> {exploration} show relatively high confidence, indicating that when successful games blend action with movement/progression, they often reinforce the experience through discovery loops (new areas, loot, dungeons, collectables, or open-ended progression paths).
+
+Overall, the results support a practical conclusion: successful indie games often rely on a core genre identity and then amplify engagement through a matching mechanic; management systems for strategy/simulation hybrids, and exploration loops for action-driven combinations. These associations do not prove causality, but they highlight combinations that repeatedly co-occur among successful titles and can reduce design risk by aligning with common audience expectations.
+
+## Game characteristics study
+Characteristics are captured from Steam categories/tags that describe presentation and play modes (e.g., 2D/3D, first-person/third-person, singleplayer/co-op, VR). We mine frequent characteristic combinations using Eclat.
+
+```{r, include=FALSE}
+# --- CHARACTERISTICS (one-hot directly) ---
+camera_characteristic <- c("2D","2.5D","3D","Isometric","Top-Down","6DOF","First-Person","Third Person")
+vr_characteristic <- c("VR","VR Only","Asymmetric VR")
+players_characteristic <- c("Singleplayer","Multiplayer","Massively Multiplayer",
+                           "Co-op","Local Co-Op","Online Co-Op","Co-op Campaign",
+                           "4 Player Local","Split Screen")
+team_characteristic <- c("PvP","PvE","Team-Based","Asynchronous Multiplayer")
+esports_characteristic <- c("e-sports")
 
 characteristics <- list(
   camera = camera_characteristic,
@@ -440,84 +1134,213 @@ characteristics <- list(
   team = team_characteristic,
   esports = esports_characteristic
 )
+
+# Generate or load characteristics dataset (cached to disk)
+characteristics_flat <- unlist(characteristics)
+out_file <- file.path("data", "indie_games_characteristic.rds")
+
+if (file.exists(out_file)) {
+  indie_games_characteristic <- readRDS(out_file)
+} else {
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
+
+  indie_games_characteristic <- successful_indie_games_attributes %>%
+    make_value_one_hot(characteristics_flat) %>%
+    select(-tags, -categories, -genres)
+
+  saveRDS(indie_games_characteristic, out_file)
+}
+
+trans_indie_games_characteristic <- as(indie_games_characteristic, "transactions")
+
+characteristic_itemsets <- eclat(trans_indie_games_characteristic, parameter = list(support = 0.001, minlen = 2))
+characteristic_top <- head(sort(characteristic_itemsets, by = "support"), 12)
+characteristic_df <- as(characteristic_top, "data.frame")
+
+# Also track single-feature prevalence for a short narrative
+characteristic_counts <- indie_games_characteristic %>%
+  pivot_longer(cols = everything(), names_to = "characteristic", values_to = "has") %>%
+  group_by(characteristic) %>%
+  summarise(count = sum(as.integer(has), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(count))
+
+most_common_char <- characteristic_counts$characteristic[1]
+most_common_char_n <- characteristic_counts$count[1]
 ```
+### Top characteristic combinations
+```{r, echo=FALSE}
+# Make the itemset table robust to different column layouts
+item_col <- intersect(names(characteristic_df), c("items", "itemset", "itemsets"))[1]
+supp_col <- intersect(names(characteristic_df), c("support", "supp"))[1]
 
+characteristic_df_k <- characteristic_df
+if (!is.na(item_col) && !is.na(supp_col)) {
+  characteristic_df_k <- characteristic_df[, c(item_col, supp_col), drop = FALSE]
+}
+colnames(characteristic_df_k) <- c("Characteristic combination", "Support")
 
-Thankfully the task of filtering indie games is already provided by steam with the Tags and Genres Indie, Crowfunded and Kickstarter. From the original dataset, only Indie games are obtained.
-```{r}
-indie <- c("Crowdfunded", "Kickstarter", "Indie")
-indie_pattern <- str_c(indie, collapse = "|")
+knitr::kable(
+  characteristic_df_k,
+  digits = 4,
+  caption = "Top characteristic combinations among successful indie games"
+)
+```
+### Conclusions from characteristics
+The most frequent characteristic combinations in the successful subset are primarily multiplayer-focused, especially the pairing {Co-op, PvP} (support ~ 0.053). This suggests that, among successful indie games that include multiplayer features, a common design choice is to combine collaboration and competition within the same title.
 
-indie_games <- steam %>% 
+We also observe VR Only appearing in the top combinations but with low support, suggesting that VR-exclusive successful games exist but represent a niche segment compared with traditional PC titles. A plausible explanation is that the VR market offers fewer alternatives overall, so the relatively small number of VR-only titles can capture a larger share of VR players and reach the engagement thresholds needed to be labeled as successful in our proxy, which makes VR-only features show up among the top itemsets.
+
+Overall, characteristics appear to matter mainly as experience modifiers: multiplayer modes (co-op/PvP) are recurring patterns among successful games, while more specialized formats (like VR-only) are less common.
+
+##Pricing and owners
+Finally, we explore whether price is related to estimated owners. We initially attempted to approach this with a simple scatter plot which ended up hard to interpret due to heavy overlap and the long-tail nature of owners. Instead the best analysis technique has been running a multivariate regression on non-free games and studying the weights.
+
+### Multivariate regression
+A raw relationship between price and owners can be misleading because both variables are correlated with other factors. To reduce this bias, we estimate a multivariate regression on paid games only (price > 0), controlling for:
+* **Review volume** (addittional approximate for audience size)
+* **Rating quality** (proxy for perceived value)
+* **Recommendations** (proxy for engagement)
+* **DLC count and language count** (rough indicators of production scope)
+
+The coefficient of log-price can be interpreted as the partial association between price and owners after accounting for these variables.
+
+The price has been capped at 90 euros and games above that price have been removed since those aren't realistic representations of indie games.
+```{r, echo=FALSE}
+# filter
+indie_games_regression <- indie_games_data %>%
+  filter(price <= 90, price >= 0) %>%
+  add_column_count(supported_languages, "languages_count") %>%
+  mutate(
+    owners_mid  = (estimated_owners_min + estimated_owners_max) / 2,
+    log_owners  = log1p(owners_mid),
+    log_price   = log1p(price),
+    log_reviews = log1p(num_reviews_total),
+    log_recs    = log1p(recommendations)
+  ) %>%
   filter(
-    if_any(
-      c(categories, genres, tags),
-      ~ str_detect(.x, indie_pattern)
+    is.finite(log_owners),
+    is.finite(log_price),
+    is.finite(log_reviews),
+    is.finite(log_recs)
+  )
+
+# Paid subset
+paid <- indie_games_regression %>%
+  filter(price > 0) %>%
+  filter(
+    if_all(
+      all_of(c("log_owners", "log_price", "log_reviews", "pct_pos_total", "log_recs", "dlc_count", "languages_count")),
+      ~ is.finite(.x)
     )
   )
-```
 
-Prepare data for determining successful games
-```{r}
-indie_games_data <- indie_games %>% select(appid, name, price, dlc_count, windows, mac, linux, achievements, recommendations, supported_languages, positive, negative, estimated_owners, average_playtime_forever, median_playtime_forever, peak_ccu, pct_pos_total, num_reviews_total)
+# Multivariate model
+m_multi <- lm(
+  log_owners ~ log_price + log_reviews + pct_pos_total + log_recs + dlc_count + languages_count,
+  data = paid
+)
+ms_multi <- summary(m_multi)
 
+# outputs
+n_paid <- nrow(paid)
+beta_p <- unname(coef(m_multi)["log_price"])
+p_p    <- ms_multi$coefficients["log_price", "Pr(>|t|)"]
+r2     <- ms_multi$r.squared
+r2_adj <- ms_multi$adj.r.squared
 
-
-#transform suported languages into count
-add_column_count <- function(df, column, new_col) {
-  column_quo <- enquo(column)
-
-  df %>%
-    mutate(
-      "{new_col}" := case_when(
-        !!column_quo == "[]" ~ 0L,
-        TRUE ~ str_count(!!column_quo, "'") %/% 2L
-      )
-    )
+# Multicollinearity diagnostics
+vif_tbl <- NULL
+if (requireNamespace("car", quietly = TRUE)) {
+  v <- car::vif(m_multi)
+  vif_tbl <- data.frame(
+    Variable = names(v),
+    VIF = round(as.numeric(v), 2),
+    row.names = NULL
+  ) %>%
+    arrange(desc(VIF))
 }
 
-add_range_minmax <- function(df, column, min_column, max_column) {
-  column_quo <- enquo(column)
+# Coefficient table 
+keep_terms <- c("log_price", "log_reviews", "pct_pos_total", "log_recs", "dlc_count", "languages_count")
+coef_mat <- ms_multi$coefficients
+coef_show <- coef_mat[rownames(coef_mat) %in% keep_terms, , drop = FALSE]
 
-  df %>%
-    mutate(
-      "{min_column}" := as.integer(str_extract(!!column_quo, "^\\s*\\d+")),
-      "{max_column}" := as.integer(str_extract(!!column_quo, "\\d+\\s*$"))
-    )
-}
+coef_tbl <- data.frame(
+  Variable = rownames(coef_show),
+  Estimate = round(coef_show[, 1], 4),
+  `Std. Error` = round(coef_show[, 2], 4),
+  `t value` = round(coef_show[, 3], 2),
+  `p value` = signif(coef_show[, 4], 3),
+  row.names = NULL,
+  check.names = FALSE
+)
 
-#Limpiar esta linea con los cambios de arturo TODO
-indie_games_data <- indie_games_data %>% 
-  add_range_minmax(estimated_owners, "estimated_owners_min", "estimated_owners_max") %>% # split owners range
-  mutate(estimated_revenue = ((estimated_owners_min + estimated_owners_max) / 2) * price) %>% # augment data with revenue
-  mutate(windows = as.integer(windows == "True")) %>% # parse logical to int
-  mutate(mac = as.integer(mac == "True")) %>% # parse logical to int
-  mutate(linux = as.integer(linux == "True")) %>% # parse logical to int
-  select(-estimated_owners)
-```
+knitr::kable(
+  coef_tbl,
+  caption = "Multivariate regression coefficients (paid games only)"
+)
 
-Cluster the data:
-```{r}
-indie_games_cluster <- indie_games_data %>% 
-  add_column_count(supported_languages, "languages_count") %>% # Count languages
-  select(-appid, -name, -supported_languages)
-
-
-  indie_games_cluster <- indie_games_cluster %>% mutate( # Avoid scaling binary columns
-    across(
-      where(is.numeric) & !all_of(c("windows", "mac", "linux")),
-      ~ as.numeric(scale(.))
-    )
+if (!is.null(vif_tbl)) {
+  knitr::kable(
+    vif_tbl,
+    caption = "Variance Inflation Factors (VIF) for multicollinearity diagnosis"
   )
-  
-  km2 <- kmeans(indie_games_cluster, centers = 3, nstart = 50)
-  indie_games_data$success_cluster<- km2$cluster
-  indie_games$success_cluster<- km2$cluster
-  colnames(indie_games_data)
+}
+
+# Standardized coefficient
+m_std <- lm(
+  scale(log_owners) ~ scale(log_price) + scale(log_reviews) + scale(pct_pos_total) +
+    scale(log_recs) + scale(dlc_count) + scale(languages_count),
+  data = paid
+)
+
+std_coef <- summary(m_std)$coefficients
+std_tbl <- data.frame(
+  Variable = rownames(std_coef),
+  Std_Estimate = std_coef[, 1],
+  `Std. Error` = std_coef[, 2],
+  `t value` = std_coef[, 3],
+  `p value` = std_coef[, 4],
+  row.names = NULL,
+  check.names = FALSE
+) %>%
+  filter(Variable != "(Intercept)") %>%
+  mutate(
+  Variable = gsub("^scale\\((.*)\\)$", "\\1", Variable),
+  Std_Estimate = round(Std_Estimate, 3),
+  `Std. Error` = round(`Std. Error`, 3),
+  `t value` = round(`t value`, 2),
+  `p value` = signif(`p value`, 3)
+) %>%
+  arrange(desc(abs(Std_Estimate)))
+
+knitr::kable(
+  std_tbl,
+  caption = "Standardized coefficients"
+)
 ```
+The VIF table provides an explicit check for multicollinearity. When VIF values are elevated, predictors overlap strongly (for example, review volume and recommendations both reflect visibility and player engagement). In that situation, individual coefficients should be interpreted cautiously: their signs and magnitudes can shift because the model is separating very similar signals.
 
+Multicollinearity does not affect the interpretation of price, since log_price has VIF 1.12. Therefore, the negative coefficient of price can be interpreted as a stable partial relationship: higher prices are associated with slightly fewer owners, although the magnitude is small compared to visibility signals such as review volume.
 
+After controlling for closely related visibility/quality variables, price has at most a small partial association with owners. This suggests that in the indie market, audience size is driven more by discoverability and perceived value (captured by reviews and engagement signals) than by price alone.
 
+## Conclussion
+We grouped indie games into three success tiers using clustering, and the separation between tiers was driven most strongly by overall audience approval (pct_pos_total). The distribution is highly uneven: most indie games fall into the unsuccessful or somewhat successful tiers, while the highly successful tier is rare, reinforcing the idea that standout success is uncommon and risk is structurally high in the indie market.
+
+**Does genre matter?**
+Successful games are heavily concentrated in a few genre groups, dominated by Action and Casual, with the most common combination being {action, casual}. Many other frequent pairs include casual as the “bridge” (e.g., tabletop/simulation/strategy + casual), suggesting that successful indies often mix a clear genre identity with accessible play patterns, while still adding depth through RPG/strategy/simulation-style progression.
+
+**Do mechanics matter?**
+The genre->mechanic rules show consistent associations: resource management is strongly linked to simulation/strategy (and action hybrids), while exploration repeatedly complements action combinations (platformer, tabletop, RPG). This supports the idea that successful games often align mechanics with what players expect from that genre blend.
+
+**Do game characteristics matter?**
+The strongest recurring characteristic pattern is multiplayer design that combines Co-op + PvP, while VR-only appears but with low support, suggesting it’s a niche path rather than a mainstream success driver.
+
+**Does pricing matter?**
+Only weakly compared to visibility and engagement signals. In the paid-only regression, price has a small negative association with owners, and its standardized effect is much smaller than review volume, which is by far the strongest correlate of audience size. Multicollinearity mainly affects review/recommendation signals (VIF ~ 6–7), but price is stable (low VIF) and still relatively minor.
+
+Overall, these results are correlational, not causal—they don’t prove that picking a genre or adding a mechanic causes success. However, they provide practical, evidence-based guidance to understand the market audience and reduce risk, helping us make more informed game-design decisions around genre direction, mechanic fit, feature scope, and pricing expectations.
 
 
 # Can a single game have enough influence to make other games have its tag?
@@ -525,7 +1348,7 @@ indie_games_cluster <- indie_games_data %>%
 ## Game study: Slay the Spire (Roguelike Deckbuilder)
 
 
-```{r}
+```{r, echo = FALSE}
 ref_game_SlayTheSpire <- cleaned_steam %>% filter(appid == 646570) %>% slice(1)
 
 ref_game_SlayTheSpire$name
@@ -534,197 +1357,74 @@ ref_game_SlayTheSpire$tags
 ```
 
 
-```{r}
-build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
-                                   bin = c("month", "year"),
-                                   exclude_window_months = 1,
-                                   window_months = 60,
-                                   max_date = as.Date("2025-02-28")) {
-  bin <- match.arg(bin)
+```{r, echo = FALSE}
+library(lubridate)
 
+month_index <- function(d) {
+  year(d) * 12 + month(d)
+}
 
-  # Max months available after launch until Feb 28, 2025 (included)
-  max_months_available <- as.numeric(difftime(max_date, ref_date, units = "days")) / (365.25 / 12)
+build_tag_timeseries_month <- function(games, tag_pattern, ref_date,
+                                       window_months = 60,
+                                       max_date = as.Date("2025-02-28")) {
 
-  # Effective post window (in bins)
-  effective_post_months <- min(window_months, floor(max_months_available))
+  ref_date <- as.Date(ref_date)
+  max_date <- as.Date(max_date)
 
-  # Convert to bin units (month or year)
-  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
-  t_max <- if (bin == "month")  effective_post_months else floor(effective_post_months / 12)
+  ref_mi <- month_index(ref_date)
+  max_mi <- month_index(max_date)
+
+  t_min <- -window_months
+  t_max <- min(window_months, max_mi - ref_mi)
 
   df_binned <- games %>%
-    filter(str_detect(tags, fixed(tag_pattern))) %>%
-    mutate(
-      t_months = as.numeric(difftime(release_date, ref_date, units = "days")) / (365.25 / 12),
-      t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
+    dplyr::filter(stringr::str_detect(tags, stringr::fixed(tag_pattern))) %>%
+    dplyr::mutate(
+      release_date = as.Date(release_date),
+      t = month_index(release_date) - ref_mi
     ) %>%
-    # Window in BIN space, with post capped by max_date
-    filter(t_bin >= t_min, t_bin <= t_max) %>%
-    # Exclude launch window in BIN space
-    filter(abs(t_bin) >= exclude_window_months) %>%
-    count(t_bin, name = "freq")
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
 
-  full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
 
   full_bins %>%
-    left_join(df_binned, by = "t_bin") %>%
-    mutate(freq = tidyr::replace_na(freq, 0L)) %>%
-    arrange(t_bin) %>%
-    mutate(
-      post = as.integer(t_bin > 0),
-      t = t_bin
-    )
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
 }
+
 
 ```
 
-```{r}
-trend_change_test <- function(m, H, M) {
-  b <- coef(m)
-  V <- vcov(m)
 
-  delta <- b["t:post"]
-  se_delta <- sqrt(V["t:post","t:post"])
-
-  effect <- H * delta
-  se_eff <- H * se_delta
-  ci <- effect + c(-1,1) * 1.96 * se_eff
-
-  list(
-    slope_change = delta,
-    effect_at_H = effect,
-    ci_95 = ci,
-    trend_changed =
-      abs(effect) > M &&
-      (ci[1] > 0 | ci[2] < 0)
-  )
-}
-```
-
-
-```{r}
-
-
-ts_slayTheSpire <- build_tag_timeseriesV3(
+```{r, echo = FALSE}
+ts_slayTheSpire <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike Deckbuilder",
   ref_date = ref_game_SlayTheSpire$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 84          # ±6 years
+  window_months = 84 # ±7 years
 )
 
 # Piecewise model (pre trend + post jump + slope change)
 m_slayTheSpire <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
 summary(m_slayTheSpire)
 
-
-
-
-```
-```{r}
-
-
-# minimum meaningful divergence (10% of pre-period SD)
-pre_sd <- sd(ts_slayTheSpire$freq[ts_slayTheSpire$post == 0], na.rm = TRUE)
-
-res <- trend_change_test(
-  m = m_slayTheSpire,
-  H = 6,
-  M = 0.10 * pre_sd
-)
-
-res$
-
-```
-#TODO: merge this later, grabbed from Nahuel's code
-```{r}
-get_unique_dict_keys <- function(x) {
-  x <- x[x != "[]"]
-  
-  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
-  
-  keys <- trimws(unlist(keys_list, use.names = FALSE))
-  keys <- keys[keys != ""]
-  sort(unique(keys))
-}
 ```
 
-```{r}
-checkIfInfluentialTag <- function(row, df, tag) {
-
-  ts_row <- build_tag_timeseriesV3(
-    games = df,
-    tag_pattern = tag,
-    ref_date = row$release_date,
-    bin = "month",
-    exclude_window_months = 1,
-    window_months = 84
-  )
-
-  # Basic sanity checks
-  if (is.null(ts_row) || nrow(ts_row) < 5) return(FALSE)
-  if (!all(c("freq","t","post") %in% names(ts_row))) return(FALSE)
-
-  # Need enough pre points to compute sd and fit meaningfully
-  pre <- ts_row$freq[ts_row$post == 0]
-  if (sum(!is.na(pre)) < 2) return(FALSE)
-
-  m <- tryCatch(
-    lm(freq ~ t + post + t:post, data = ts_row),
-    error = function(e) NULL
-  )
-  if (is.null(m)) return(FALSE)
-
-  H <- 6
-  pre_sd <- sd(pre, na.rm = TRUE)
-  if (!is.finite(pre_sd) || pre_sd == 0) return(FALSE)
-
-  M <- 0.10 * pre_sd
-
-  res <- tryCatch(
-    trend_change_test(m = m, H = H, M = M),
-    error = function(e) NULL
-  )
-  if (is.null(res) || is.null(res$trend_changed)) return(FALSE)
-
-  isTRUE(res$trend_changed)   # <- forces TRUE only when exactly TRUE
-}
-
-checkIfInfluentialOverall <- function(i, popular_df, full_df) {
-  row <- popular_df[i, , drop = FALSE]
-  tags <- get_unique_dict_keys(row$tags)
-  if (length(tags) == 0) return(FALSE)
-
-  for (tag in tags) {
-    if (isTRUE(checkIfInfluentialTag(row, full_df, tag))) return(TRUE)
-  }
-  FALSE
-}
-```
-
-
-
-```{r}
-
-cleaned_steam$influential <- FALSE  # preallocate
-popularGames <- cleaned_steam[ cleaned_steam$estimated_owners_min >= 2000000,]
-
-popularGames$influential <- vapply(
-  seq_len(nrow(popularGames)),
-  checkIfInfluentialOverall,
-  logical(1),
-  popular_df = popularGames,
-  full_df = cleaned_steam
-)
-```
-
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_slayTheSpire, t < 0)) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_slayTheSpire, t > 0)) +
+  geom_smooth(data = subset(ts_slayTheSpire, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_slayTheSpire, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_slayTheSpire$t),to = max(ts_slayTheSpire$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Tag adoption around Slay the Spire launch",
@@ -737,72 +1437,52 @@ ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
 ```
 
 
-```{r}
-build_global_timeseries <- function(games, ref_date,
-                                    bin = c("month", "year"),
-                                    exclude_window_months = 1,
-                                    window_months = 60,
-                                    max_date = as.Date("2025-02-28")) {
+```{r, echo = FALSE}
+build_global_timeseries_month <- function(games, ref_date,
+                                          window_months = 60,
+                                          max_date = as.Date("2025-02-28")) {
 
-  bin <- match.arg(bin)
+  ref_date <- as.Date(ref_date)
+  max_date <- as.Date(max_date)
 
-  # --- compute max available months until Feb 2025 ---
-  max_months_available <- as.numeric(
-    difftime(max_date, ref_date, units = "days")
-  ) / (365.25 / 12)
+  ref_mi <- month_index(ref_date)
+  max_mi <- month_index(max_date)
 
-  effective_window_months <- min(window_months, floor(max_months_available))
+  t_min <- -window_months
+  t_max <- min(window_months, max_mi - ref_mi)
 
-  # --- compute time relative to launch ---
-  df_raw <- games %>%
-    mutate(
-      t_months = as.numeric(
-        difftime(release_date, ref_date, units = "days")
-      ) / (365.25 / 12)
+  df_binned <- games %>%
+    dplyr::mutate(
+      release_date = as.Date(release_date),
+      t = month_index(release_date) - ref_mi
     ) %>%
-    filter(t_months <= effective_window_months) %>%   # cap at Feb 2025
-    filter(abs(t_months) > exclude_window_months)
+    dplyr::filter(t >= t_min, t <= t_max) %>%
+    dplyr::count(t, name = "freq")
 
-  # --- binning ---
-  df_binned <- df_raw %>%
-    mutate(
-      t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
-    ) %>%
-    count(t_bin, name = "freq")
+  full_bins <- tibble::tibble(t = seq(t_min, t_max, by = 1))
 
-  # --- full bin sequence ---
-  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
-  t_max <- if (bin == "month") effective_window_months else floor(effective_window_months / 12)
-
-  full_bins <- tibble(
-    t_bin = seq(t_min, t_max, by = 1)
-  )
-
-  # --- fill missing bins ---
   full_bins %>%
-    left_join(df_binned, by = "t_bin") %>%
-    mutate(freq = tidyr::replace_na(freq, 0L)) %>%
-    arrange(t_bin) %>%
-    mutate(
-      post = as.integer(t_bin > 0),
-      t = t_bin
-    )
+    dplyr::left_join(df_binned, by = "t") %>%
+    dplyr::mutate(
+      freq = tidyr::replace_na(freq, 0L),
+      post = as.integer(t > 0)
+    ) %>%
+    dplyr::arrange(t)
 }
+
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_SlayTheSpire$release_date,
-  bin = "month",
-  exclude_window_months = 1,
   window_months = 84
 )
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 m_tag <- lm(freq ~ t + post + t:post, data = ts_slayTheSpire)
 m_global <- lm(freq ~ t + post + t:post, data = ts_global)
 
@@ -811,7 +1491,7 @@ summary(m_global)
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 combined <- bind_rows(
   ts_slayTheSpire %>% mutate(type = "Roguelike Deckbuilder", series = "tag"),
   ts_global %>% mutate(type = "All games", series = "global")
@@ -819,13 +1499,12 @@ combined <- bind_rows(
 
 ggplot(combined, aes(x = t, y = freq, color = type)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(
-    data = subset(combined, t < 0),
-    method = "lm", se = FALSE
-  ) +
-  geom_smooth(
-    data = subset(combined, t > 0),
-    method = "lm", se = FALSE
+  geom_smooth(data = subset(combined, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(combined, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(combined$t),to = max(combined$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
   ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
@@ -839,28 +1518,26 @@ ggplot(combined, aes(x = t, y = freq, color = type)) +
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 
 m_diff <- lm(freq ~ t * post * series, data = combined)
 summary(m_diff)
 
 ```
 
-## Game Study: The Binding Of Isaac (Roguelike)
+## Game Study: The Binding Of Isaac + The Binding Of Isaac Rebirth (Roguelike)
 
-```{r}
+```{r, echo = FALSE}
 ref_game_BindingOfIsaac <- cleaned_steam %>% filter(appid == 113200) %>% slice(1)
 
 ref_game_BindingOfIsaac$name
 ref_game_BindingOfIsaac$release_date
 
-ts_BindingOfIsaac <- build_tag_timeseriesV3(
+ts_BindingOfIsaac <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaac$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 168         # ±6 years
+  window_months = 168 # ±14 years
 )
 
 ref_game_BindingOfIsaacRebirth <- cleaned_steam %>% filter(appid == 250900) %>% slice(1)
@@ -869,68 +1546,70 @@ ref_game_BindingOfIsaacRebirth$name
 ref_game_BindingOfIsaacRebirth$release_date
 
 
-ts_BindingOfIsaacRebirth <- build_tag_timeseriesV3(
+ts_BindingOfIsaacRebirth <- build_tag_timeseries_month(
   games = cleaned_steam,
   tag_pattern = "Roguelike",
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
-  bin = "month",              # months gives more detail
-  exclude_window_months = 1,  # drop ±1 month around launch
-  window_months = 120         # ±6 years
+  window_months = 132 # ±11 years
 )
 ```
-```{r}
-# Piecewise model (pre trend + post jump + slope change)
-m_BindingOfIsaacRebirth <- lm(freq ~ t + post + t:post, data = ts_BindingOfIsaacRebirth)
-summary(m_slayTheSpire)
-```
 
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaac, t < 0)) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaac, t > 0)) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_BindingOfIsaac, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaac$t),to = max(ts_BindingOfIsaac$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 200)) +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 25)
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Tag adoption around The Binding Of Isaac",
     subtitle = "Tag: Roguelike — months relative to launch (t=0)",
-    x = "Months relative to launch (t=0)",
-    y = "Number of released games with the tag RogueLike(per month)"
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
   ) +
   theme_minimal()
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaac$release_date,
-  bin = "month",
-  exclude_window_months = 1,
-  window_months = 180
+  window_months = 168
 )
 
 plot_df <- bind_rows(
   ts_BindingOfIsaac %>% mutate(type = "Roguelike"),
   ts_global %>% mutate(type = "All games")
 )
+```
 
+
+```{r, echo = FALSE}
 ggplot(plot_df, aes(x = t, y = freq, color = type)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(
-    data = subset(plot_df, t < 0),
-    method = "lm", se = FALSE
-  ) +
-  geom_smooth(
-    data = subset(plot_df, t > 0),
-    method = "lm", se = FALSE
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(plot_df$t),to = max(plot_df$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
   ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
-    title = "Slope comparison around Slay the Spire launch",
+    title = "Slope comparison around The BInding of Isaac launch",
     subtitle = "Target tag vs overall Steam release trend (monthly bins)",
-    x = "Months relative to launch (t = 0)",
-    y = "Number of released games per month",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
     color = "Series"
   ) +
   theme_minimal()
@@ -938,56 +1617,106 @@ ggplot(plot_df, aes(x = t, y = freq, color = type)) +
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
   geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
-  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t > 0)) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t < 0)) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, data = subset(ts_BindingOfIsaacRebirth, t > 0)) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 200)) +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 25)
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Tag adoption around The Binding Of Isaac REBIRTH",
     subtitle = "Tag: Roguelike — months relative to launch (t=0)",
-    x = "Months relative to launch (t=0)",
-    y = "Number of released games with the tag RogueLike(per month)"
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
   ) +
   theme_minimal()
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Global baseline (all games)
-ts_global <- build_global_timeseries(
+ts_global <- build_global_timeseries_month(
   games = cleaned_steam,
   ref_date = ref_game_BindingOfIsaacRebirth$release_date,
-  bin = "month",
-  exclude_window_months = 1,
   window_months = 120
 )
 
 plot_df <- bind_rows(
-  ts_BindingOfIsaac %>% mutate(type = "Roguelike"),
+  ts_BindingOfIsaacRebirth %>% mutate(type = "Roguelike"),
   ts_global %>% mutate(type = "All games")
 )
+```
 
+
+```{r, echo = FALSE}
 ggplot(plot_df, aes(x = t, y = freq, color = type)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(
-    data = subset(plot_df, t < 0),
-    method = "lm", se = FALSE
-  ) +
-  geom_smooth(
-    data = subset(plot_df, t > 0),
-    method = "lm", se = FALSE
+  geom_smooth(data = subset(plot_df, t < 0), method = "lm", se = FALSE) +
+  geom_smooth(data = subset(plot_df, t > 0), method = "lm", se = FALSE) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_BindingOfIsaacRebirth$t),to = max(ts_BindingOfIsaacRebirth$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
   ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
-    title = "Slope comparison around Slay the Spire launch",
-    subtitle = "Target tag vs overall Steam release trend (monthly bins)",
-    x = "Months relative to launch (t = 0)",
-    y = "Number of released games per month",
+    title = "Slope comparison around The BInding of Isaac Rebirth launch",
+    subtitle = "Roguelike tag vs overall Steam releases",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
     color = "Series"
   ) +
   theme_minimal()
 
 ```
 
+
+```{r, echo = FALSE}
+ref_game_Terraria <- cleaned_steam %>% filter(appid == 105600) %>% slice(1)
+
+ref_game_Terraria$name
+ref_game_Terraria$release_date
+
+
+ts_Terraria <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Open World Survival Craft",
+  ref_date = ref_game_Terraria$release_date,
+  window_months = 168 # ±10 years
+)
+
+```
+
+```{r, echo = FALSE}
+ggplot(ts_Terraria, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(data = subset(ts_Terraria, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_Terraria, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_Terraria$t),to = max(ts_Terraria$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 50)) +
+  scale_y_continuous(
+    breaks = seq(0, 50, by = 10)
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around Terraria",
+    subtitle = "Tag: Open World Survival Craft — months relative to launch (t=0)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+  ) +
+  theme_minimal()
+
+```
