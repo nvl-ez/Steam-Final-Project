@@ -1345,6 +1345,184 @@ Overall, these results are correlational, not causal—they don’t prove that p
 
 # Can a single game have enough influence to make other games have its tag?
 
+
+To evaluate whether a single game can shape the popularity of a tag, we look beyond raw counts and focus on how tag usage changes over time. While tag popularity is defined by the number of games that use it, this alone does not capture shifts in adoption. We therefore track the monthly frequency of games released with the tag before and after the release of the game of interest. By fitting a linear regression to each time period, we capture the trend in tag usage on both sides of the release date. A noticeable change in the slope between these trends suggests that the game may have influenced how widely the tag was subsequently used.
+
+The same process defined for a single game can be generalized for all games and all tags and thus allowing to somewhat determine if a game is "influential" in general. In order to study this we have selected a sample of games that would be candidate to be influential. This subset is formed by games that have an estimated more than 2000000 owners.
+
+
+```{r, echo = FALSE}
+build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
+                                   bin = c("month", "year"),
+                                   exclude_window_months = 1,
+                                   window_months = 60,
+                                   max_date = as.Date("2025-02-28")) {
+  bin <- match.arg(bin)
+
+
+  # Max months available after launch until Feb 28, 2025 (included)
+  max_months_available <- as.numeric(difftime(max_date, ref_date, units = "days")) / (365.25 / 12)
+
+  # Effective post window (in bins)
+  effective_post_months <- min(window_months, floor(max_months_available))
+
+  # Convert to bin units (month or year)
+  t_min <- if (bin == "month") -window_months else floor(-window_months / 12)
+  t_max <- if (bin == "month")  effective_post_months else floor(effective_post_months / 12)
+
+  df_binned <- games %>%
+    filter(str_detect(tags, fixed(tag_pattern))) %>%
+    mutate(
+      t_months = as.numeric(difftime(release_date, ref_date, units = "days")) / (365.25 / 12),
+      t_bin = if (bin == "month") floor(t_months) else floor(t_months / 12)
+    ) %>%
+    # Window in BIN space, with post capped by max_date
+    filter(t_bin >= t_min, t_bin <= t_max) %>%
+    # Exclude launch window in BIN space
+    filter(abs(t_bin) >= exclude_window_months) %>%
+    count(t_bin, name = "freq")
+
+  full_bins <- tibble(t_bin = seq(t_min, t_max, by = 1))
+
+  full_bins %>%
+    left_join(df_binned, by = "t_bin") %>%
+    mutate(freq = tidyr::replace_na(freq, 0L)) %>%
+    arrange(t_bin) %>%
+    mutate(
+      post = as.integer(t_bin > 0),
+      t = t_bin
+    )
+}
+
+```
+
+
+
+
+
+```{r, echo = FALSE}
+trend_change_test <- function(m, H, M) {
+  b <- coef(m)
+  V <- vcov(m)
+
+  delta <- b["t:post"]
+  se_delta <- sqrt(V["t:post","t:post"])
+
+  effect <- H * delta
+  se_eff <- H * se_delta
+  ci <- effect + c(-1,1) * 1.96 * se_eff
+
+  list(
+    slope_change = delta,
+    effect_at_H = effect,
+    ci_95 = ci,
+    trend_changed =
+      abs(effect) > M &&
+      (ci[1] > 0 | ci[2] < 0)
+  )
+}
+```
+
+
+
+
+```{r, echo = FALSE}
+get_unique_dict_keys <- function(x) {
+  x <- x[x != "[]"]
+  
+  keys_list <- str_extract_all(x, "(?<=')[^']+(?='\\s*:)")
+  
+  keys <- trimws(unlist(keys_list, use.names = FALSE))
+  keys <- keys[keys != ""]
+  sort(unique(keys))
+}
+```
+
+
+```{r, echo = FALSE}
+checkIfInfluentialTag <- function(row, df, tag) {
+
+  ts_row <- build_tag_timeseriesV3(
+    games = df,
+    tag_pattern = tag,
+    ref_date = row$release_date,
+    bin = "month",
+    exclude_window_months = 1,
+    window_months = 84
+  )
+
+  # Basic sanity checks
+  if (is.null(ts_row) || nrow(ts_row) < 5) return(FALSE)
+  if (!all(c("freq","t","post") %in% names(ts_row))) return(FALSE)
+
+  # Need enough pre points to compute sd and fit meaningfully
+  pre <- ts_row$freq[ts_row$post == 0]
+  if (sum(!is.na(pre)) < 2) return(FALSE)
+
+  m <- tryCatch(
+    lm(freq ~ t + post + t:post, data = ts_row),
+    error = function(e) NULL
+  )
+  if (is.null(m)) return(FALSE)
+
+  H <- 6
+  pre_sd <- sd(pre, na.rm = TRUE)
+  if (!is.finite(pre_sd) || pre_sd == 0) return(FALSE)
+
+  M <- 0.10 * pre_sd
+
+  res <- tryCatch(
+    trend_change_test(m = m, H = H, M = M),
+    error = function(e) NULL
+  )
+  if (is.null(res) || is.null(res$trend_changed)) return(FALSE)
+
+  isTRUE(res$trend_changed)   # <- forces TRUE only when exactly TRUE
+}
+
+checkIfInfluentialOverall <- function(i, popular_df, full_df) {
+  row <- popular_df[i, , drop = FALSE]
+  tags <- get_unique_dict_keys(row$tags)
+  if (length(tags) == 0) return(FALSE)
+
+  for (tag in tags) {
+    if (isTRUE(checkIfInfluentialTag(row, full_df, tag))) return(TRUE)
+  }
+  FALSE
+}
+```
+
+
+
+```{r, echo = FALSE}
+
+cleaned_steam$influential <- FALSE  # preallocate
+popularGames <- cleaned_steam[ cleaned_steam$estimated_owners_min >= 2000000,]
+
+popularGames$influential <- vapply(
+  seq_len(nrow(popularGames)),
+  function(i) {
+    checkIfInfluentialOverall(
+      i = i,
+      popular_df = popularGames,
+      full_df = cleaned_steam
+    )
+  },
+  logical(1)
+)
+
+```
+
+With this general method we can determine that at least a 96% of "popular" games have influenced other tags
+```{r, echo = FALSE}
+(sum(popularGames$influential)/nrow(popularGames))*100
+
+```
+
+
+
+
+
 ## Game study: Slay the Spire (Roguelike Deckbuilder)
 
 
@@ -1436,6 +1614,9 @@ ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
 
 ```
 
+```{r, echo = FALSE}
+checkIfInfluentialTag(ref_game_SlayTheSpire,cleaned_steam,"Roguelike Deckbuilder")
+```
 
 ```{r, echo = FALSE}
 build_global_timeseries_month <- function(games, ref_date,
@@ -1578,7 +1759,9 @@ ggplot(ts_BindingOfIsaac, aes(x = t, y = freq)) +
   theme_minimal()
 
 ```
-
+```{r, echo = FALSE}
+checkIfInfluentialTag(ref_game_BindingOfIsaac,cleaned_steam,"Roguelike")
+```
 ```{r, echo = FALSE}
 # Global baseline (all games)
 ts_global <- build_global_timeseries_month(
@@ -1640,6 +1823,10 @@ ggplot(ts_BindingOfIsaacRebirth, aes(x = t, y = freq)) +
   ) +
   theme_minimal()
 
+```
+
+```{r, echo = FALSE}
+checkIfInfluentialTag(ref_game_BindingOfIsaacRebirth,cleaned_steam,"Roguelike")
 ```
 
 ```{r, echo = FALSE}
@@ -1720,3 +1907,49 @@ ggplot(ts_Terraria, aes(x = t, y = freq)) +
   theme_minimal()
 
 ```
+
+
+## Game Study: Among Us (Social Deduction)
+
+```{r, echo = FALSE}
+ref_game_AmongUs <- cleaned_steam %>% filter(appid == 945360) %>% slice(1)
+
+ref_game_AmongUs$name
+ref_game_AmongUs$release_date
+
+ts_AmongUs <- build_tag_timeseries_month(
+  games = cleaned_steam,
+  tag_pattern = "Social Deduction",
+  ref_date = ref_game_AmongUs$release_date,
+  window_months = 168 # ±14 years
+)
+
+
+```
+
+```{r, echo = FALSE}
+ggplot(ts_AmongUs, aes(x = t, y = freq)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(data = subset(ts_AmongUs, t < 0), method = "lm", se = FALSE, formula = y ~ x) +
+  geom_smooth(data = subset(ts_AmongUs, t > 0), method = "lm", se = FALSE, formula = y ~ x) +
+  scale_x_continuous(
+    breaks = seq(from = min(ts_AmongUs$t),to = max(ts_AmongUs$t), by = 12),
+    labels = function(x) x / 12,
+    minor_breaks = NULL
+  ) +
+  coord_cartesian(ylim = c(0, 5)) +
+  scale_y_continuous(
+    breaks = seq(0, 5, by = 1)
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Tag adoption around Among Us",
+    subtitle = "Tag: Social Deduction — months relative to launch (t=0)",
+    x = "Years relative to launch (t = 0)",
+    y = "Number of released games",
+  ) +
+  theme_minimal()
+
+```
+
+
