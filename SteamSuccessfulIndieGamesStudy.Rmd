@@ -1,11 +1,11 @@
 ---
 output:
-  html_document:
-    toc: true
-    toc_depth: 5
   pdf_document:
     toc: false
     number_sections: true
+  html_document:
+    toc: true
+    toc_depth: 5
 ---
 
 \pagenumbering{gobble}
@@ -142,9 +142,7 @@ General look of the dataset
 summary(steam)
 ```
 
-Explanation of first looks of it, bad formatting, NA's, negative values...
-
-## Handling of NA values
+## Irrelevant data, and Noise Handling 
 
 The attributes with missing values are:
 
@@ -154,8 +152,9 @@ na_counts <- steam %>% summarise_all(~ sum(is.na(.)))
 print(na_counts)
 ```
 
-The columns with missing values are as follows:
+As it was shown before, the dataset contains 47 variables, however, only the variables relevant to our analysis were retained and explained. The remaining variables were removed in order to reduce the dimensionality of the dataset (those being: "detailed_description","about_the_game","short_description","reviews","header_image","website","support_url","support_email","metacritic_url", "notes","full_audio_languages","screenshots","movies","user_score","score_rank","discount","pct_pos_recent","num_reviews_recent"). It's also noticeable that there where one of the removed attributes containing missing values on all of its observations ("score_rank"). This could have been because some scraping error, but we removed that variable as it is not useful for our investigations.
 
+Also ,initially, the "released_date" attribute was stored in text format. Therefore, we converted to R’s Date format, and we removed those observations with a missing or invalid released date.
 
 ```{r cleaning, echo = FALSE}
 cleaned_steam <- steam %>%
@@ -174,6 +173,10 @@ cleaned_steam <- steam %>%
   mutate(release_date = as.Date(release_date)) %>%
   filter(!is.na(release_date))
 ```
+
+## Data Formatting and Addition
+
+The "estimated_owners" attribute represents a range of values (e.g., 100-20.000). To make this information more suitable for analysis, we used a self made function to split this range into two new attributes: "estimated_owners_min" and "estimated_owners_max".
 
 ```{r, echo = FALSE}
 add_range_minmax <- function(df, column, min_column, max_column) {
@@ -195,9 +198,7 @@ cleaned_steam <- cleaned_steam %>%
 ```
 
 
-LOs juegos con número de reseñas = -1 creemos que son porque el scrappear ha fallado durante su ejecución. Si vamos a trabajar con las reseñas podríamos decir en la presentación que vamos a probar de volver a intentar scrappear la información 
-
-```{r info of the dataset, echo = FALSE}
+```{r info of the dataset, include = FALSE}
 str(cleaned_steam)
 summary(cleaned_steam)
 ```
@@ -417,7 +418,7 @@ genre_grow <- market_share %>%
 print(genre_grow)
 ```
 
-Visualization of the top 5 most growth genre and the bottom 5 growth genre:
+Visualization of the genres by Net Growth:
 
 ```{r, echo = FALSE}
 ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Net_Growth > 0)) +
@@ -427,7 +428,7 @@ ggplot(genre_grow, aes(x = reorder(Genre, Net_Growth), y = Net_Growth, fill = Ne
                     labels = c("Negative", "Positive"), 
                     name = "Growth Type") +
   labs(
-    title = "Top 5 and Bottom 5 Genres by Net Growth",
+    title = " Genres by Net Growth",
     x = "Genre",
     y = "Net Growth (%)"
   ) +
@@ -596,11 +597,13 @@ get_unique_list_values <- function(x) {
 }
 ```
 Indie game development is high-risk: budgets are limited, marketing reach is uncertain, and audience discovery can be unpredictable. This section explores commonalities across successful indie games, with two practical goals:
+
 * **Understand market audience:** identify what combinations of genres/mechanics tend to co-occur among games that reach larger audiences.
 * **Reduce risk for game-making:** extract patterns that can guide design decisions without prescribing a single “correct” formula.
 
 
 We focus on four questions:
+
 * **Does genre matter?**
 * **Do mechanics matter (especially in combination with genre)?**
 * **Do game characteristics matter (e.g., camera, player modes, VR)?**
@@ -628,6 +631,7 @@ Determining “successful” indie games
 
 ### Clustering approach
 We cluster indie games using a set of numeric variables that capture outcomes and engagement (e.g., recommendations, reviews, playtime, peak CCU, owners/revenue estimates, price, and platform availability). Before fixing the final configuration, we experimented with multiple numbers of clusters:
+
 * **2 clusters** (attempting to represent successful vs not successful)
 * **3 clusters** (attempting to represent massively successful, successful and not successful)
 * **4 clusters**
@@ -745,6 +749,7 @@ We therefore compute the variable that best differentiates the clusters (highest
 In our case, the most discriminant variable is `r most_discriminative_var` and it produces a clean ordering between the three clusters, which supports using this partition in the rest of the report.
 
 As an additional sanity check, we compute a global silhouette score on a random sample of games in the standardized feature space. Silhouette values closer to 1 indicate well-separated clusters, values near 0 indicate overlap, and negative values suggest poor assignments.
+
 ```{r, echo = FALSE}
 n_all <- nrow(indie_games_cluster)
 idx <- sample(seq_len(n_all), size = min(5000, n_all))
@@ -758,6 +763,7 @@ D <- dist(x_s)
 sil <- cluster::silhouette(cl_s, D)
 silhouette_avg <- mean(sil[, "sil_width"])
 ```
+
 The average silhouette score on the sample is `r round(silhouette_avg, 3)`.
 
 ### Cluster interpretation
@@ -802,6 +808,7 @@ cluster_summary_long %>%
 ```
 
 A key takeaway from the cluster sizes is that the distribution is highly imbalanced: a large share of games are concentrated in the lower-to-mid tiers, while the top tier contains only a small number of games. In this run, the lowest tier accounts for `r scales::percent(cluster_summary$prop[1], accuracy = 0.1)`, whereas the highest tier represents only `r scales::percent(tail(cluster_summary$prop, 1), accuracy = 0.1)` of indie games.
+
 ```{r, echo = FALSE}
 # Plot number of games per cluster (count distribution)
 cluster_summary %>%
@@ -829,6 +836,7 @@ However, this produced obscure and highly specific combinations with limited gen
 For that reason, we switched to a more interpretable strategy: First filter the dataset to successful indie games, and then mine frequent itemsets (genre combinations) with sufficient support inside this subset.
 
 This approach still answers our question: *Amongng successful games, what genre combinations are most common?*
+
 ```{r, include = FALSE}
 # --- Helper functions (project-defined) ---
 make_value_one_hot <- function(data, values, categories_col = "categories", genres_col = "genres", tags_col = "tags") {
@@ -942,6 +950,7 @@ most_common_genre_n <- genre_counts$count[1]
 ```
 
 ### Most common genre combinations (frequent itemsets)
+
 The table below lists the most frequent genre combinations among successful games (support = proportion of successful games containing that combination).
 
 ```{r, echo = FALSE}
@@ -961,6 +970,7 @@ ggplot(genre_df, aes(x = reorder(items, support), y = support)) +
 ```
 
 ### Genre prevalence
+
 ```{r, echo = FALSE}
 genre_counts %>%
   mutate(genre = reorder(genre, count)) %>%
@@ -987,6 +997,7 @@ Mechanics are stored as list of tags (e.g., resource_management, procedural, nar
 Instead of only asking “which mechanics are common?”, we also ask: *Given a genre combination, which mechanics are most strongly associated with it?*
 
 We mine association rules of the form:
+
 * LHS (antecedent): genre group(s)
 * RHS (consequent): mechanic group
 
@@ -1118,6 +1129,7 @@ knitr::kable(
   caption = "Top genre->mechanic rules among successful indie games (ranked by lift)"
 )
 ```
+
 ### Conclussions from genres and mechanic rules
 A first clear pattern is the strength of resource management inside strategy/simulation hybrids. The rule {simulation, strategy} -> {resource_management} has the highest lift (around 3.75), meaning that management-oriented mechanics are several times more likely than expected when a game sits at the intersection of these genres. Similar high-lift rules also appear for {action, strategy} and {action, simulation}, suggesting that successful hybrids often combine an action layer with systems such as crafting, automation, building, or economy loops.
 
@@ -1126,6 +1138,7 @@ A second pattern is that exploration frequently complements action-driven genres
 Overall, the results support a practical conclusion: successful indie games often rely on a core genre identity and then amplify engagement through a matching mechanic; management systems for strategy/simulation hybrids, and exploration loops for action-driven combinations. These associations do not prove causality, but they highlight combinations that repeatedly co-occur among successful titles and can reduce design risk by aligning with common audience expectations.
 
 ## Game characteristics study
+
 Characteristics are captured from Steam categories/tags that describe presentation and play modes (e.g., 2D/3D, first-person/third-person, singleplayer/co-op, VR). We mine frequent characteristic combinations using Eclat.
 
 ```{r, include=FALSE}
@@ -1196,6 +1209,7 @@ knitr::kable(
   caption = "Top characteristic combinations among successful indie games"
 )
 ```
+
 ### Conclusions from characteristics
 The most frequent characteristic combinations in the successful subset are primarily multiplayer-focused, especially the pairing {Co-op, PvP} (support ~ 0.053). This suggests that, among successful indie games that include multiplayer features, a common design choice is to combine collaboration and competition within the same title.
 
@@ -1208,6 +1222,7 @@ Finally, we explore whether price is related to estimated owners. We initially a
 
 ### Multivariate regression
 A raw relationship between price and owners can be misleading because both variables are correlated with other factors. To reduce this bias, we estimate a multivariate regression on paid games only (price > 0), controlling for:
+
 * **Review volume** (addittional approximate for audience size)
 * **Rating quality** (proxy for perceived value)
 * **Recommendations** (proxy for engagement)
@@ -1330,6 +1345,7 @@ knitr::kable(
   caption = "Standardized coefficients"
 )
 ```
+
 The VIF table provides an explicit check for multicollinearity. When VIF values are elevated, predictors overlap strongly (for example, review volume and recommendations both reflect visibility and player engagement). In that situation, individual coefficients should be interpreted cautiously: their signs and magnitudes can shift because the model is separating very similar signals.
 
 Multicollinearity does not affect the interpretation of price, since log_price has VIF 1.12. Therefore, the negative coefficient of price can be interpreted as a stable partial relationship: higher prices are associated with slightly fewer owners, although the magnitude is small compared to visibility signals such as review volume.
@@ -1337,6 +1353,7 @@ Multicollinearity does not affect the interpretation of price, since log_price h
 After controlling for closely related visibility/quality variables, price has at most a small partial association with owners. This suggests that in the indie market, audience size is driven more by discoverability and perceived value (captured by reviews and engagement signals) than by price alone.
 
 ## Conclussion
+
 We grouped indie games into three success tiers using clustering, and the separation between tiers was driven most strongly by overall audience approval (pct_pos_total). The distribution is highly uneven: most indie games fall into the unsuccessful or somewhat successful tiers, while the highly successful tier is rare, reinforcing the idea that standout success is uncommon and risk is structurally high in the indie market.
 
 **Does genre matter?**
@@ -1877,6 +1894,7 @@ ggplot(plot_df, aes(x = t, y = freq, color = type)) +
 
 ```
 
+## Game Study: Terraria (Open World Survival Craft)
 
 ```{r, echo = FALSE}
 ref_game_Terraria <- cleaned_steam %>% filter(appid == 105600) %>% slice(1)
