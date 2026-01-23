@@ -488,20 +488,16 @@ played_games <- genre_group_coded_steam %>%
 
 ```{r, echo = FALSE}
 genre_playtime_stats <- played_games %>%
-  # Select playtime and the specific genre group columns created earlier
   select(average_playtime_forever, all_of(names(genres))) %>%
   
-  # Reshape to long format: one row per (Game, Genre Group)
   pivot_longer(
     cols = all_of(names(genres)), 
     names_to = "Genre_Group", 
     values_to = "HasGenre"
   ) %>%
   
-  # Keep only the rows where the game belongs to that genre group
   filter(HasGenre == TRUE) %>%
   
-  # Group by the custom genre groups and calculate stats
   group_by(Genre_Group) %>%
   summarise(
     Mean_Playtime = mean(average_playtime_forever, na.rm = TRUE),
@@ -510,7 +506,6 @@ genre_playtime_stats <- played_games %>%
     .groups = 'drop'
   ) %>%
   
-  # Sort by Median Playtime (usually better for playtime due to outliers)
   arrange(desc(Median_Playtime))
 ```
 
@@ -528,7 +523,6 @@ ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Mean_Playtime), y = Me
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 ```{r, echo = FALSE}
-# We use Median here as it's more representative of the "typical" player experience
 ggplot(genre_playtime_stats, aes(x = reorder(Genre_Group, Median_Playtime), y = Median_Playtime)) +
   geom_col(fill = "steelblue") + 
   coord_flip() +
