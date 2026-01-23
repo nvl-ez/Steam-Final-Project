@@ -1562,8 +1562,6 @@ slayTheSpiteCheck$name
 
 
 ```{r, echo = FALSE}
-library(lubridate)
-
 month_index <- function(d) {
   year(d) * 12 + month(d)
 }
