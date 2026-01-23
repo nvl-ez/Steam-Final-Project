@@ -1412,6 +1412,9 @@ build_tag_timeseriesV3 <- function(games, tag_pattern, ref_date,
 
 
 ```{r, echo = FALSE}
+#m: model
+#H: temporal horizon of affected data(unreasonable to look at EXTREMLTY big time frames)
+#M: minimum threshold for it to be significant
 trend_change_test <- function(m, H, M) {
   b <- coef(m)
   V <- vcov(m)
@@ -1425,12 +1428,10 @@ trend_change_test <- function(m, H, M) {
 
   list(
     slope_change = delta,
-    effect_at_H = effect,
-    ci_95 = ci,
     trend_changed =
       abs(effect) > M &&
       (ci[1] > 0 | ci[2] < 0)
-  )
+)
 }
 ```
 
@@ -1462,24 +1463,24 @@ checkIfInfluentialTag <- function(row, df, tag) {
     window_months = 84
   )
 
-  # Basic sanity checks
+  # Sanity checks
   if (is.null(ts_row) || nrow(ts_row) < 5) return(FALSE)
   if (!all(c("freq","t","post") %in% names(ts_row))) return(FALSE)
 
   # Need enough pre points to compute sd and fit meaningfully
   pre <- ts_row$freq[ts_row$post == 0]
   if (sum(!is.na(pre)) < 2) return(FALSE)
-
+  # The model
   m <- tryCatch(
     lm(freq ~ t + post + t:post, data = ts_row),
     error = function(e) NULL
   )
   if (is.null(m)) return(FALSE)
-
+  # 6 years window
   H <- 6
   pre_sd <- sd(pre, na.rm = TRUE)
   if (!is.finite(pre_sd) || pre_sd == 0) return(FALSE)
-
+  # Threshold based on standard deviation
   M <- 0.10 * pre_sd
 
   res <- tryCatch(
@@ -1488,7 +1489,7 @@ checkIfInfluentialTag <- function(row, df, tag) {
   )
   if (is.null(res) || is.null(res$trend_changed)) return(FALSE)
 
-  isTRUE(res$trend_changed)   # <- forces TRUE only when exactly TRUE
+  isTRUE(res$trend_changed)
 }
 
 checkIfInfluentialOverall <- function(i, popular_df, full_df) {
@@ -1543,6 +1544,9 @@ ref_game_SlayTheSpire <- cleaned_steam %>% filter(appid == 646570) %>% slice(1)
 ref_game_SlayTheSpire$name
 ref_game_SlayTheSpire$release_date
 ref_game_SlayTheSpire$tags
+
+slayTheSpiteCheck <- popularGames %>% filter(appid == 646570) %>% slice(1)
+slayTheSpiteCheck$name
 ```
 
 
@@ -1618,7 +1622,7 @@ ggplot(ts_slayTheSpire, aes(x = t, y = freq)) +
   labs(
     title = "Tag adoption around Slay the Spire launch",
     subtitle = "Tag: Roguelike Deckbuilder — months relative to launch (t=0)",
-    x = "Months relative to launch (t=0)",
+    x = "Years relative to launch (t=0)",
     y = "Number of released games with the tag RogueLike DeckBuilding(per month)"
   ) +
   theme_minimal()
@@ -1904,7 +1908,7 @@ ggplot(ts_Terraria, aes(x = t, y = freq)) +
     labels = function(x) x / 12,
     minor_breaks = NULL
   ) +
-  coord_cartesian(ylim = c(0, 50)) +
+  coord_cartesian(ylim = c(0, 25)) +
   scale_y_continuous(
     breaks = seq(0, 50, by = 10)
   ) +
@@ -1918,7 +1922,9 @@ ggplot(ts_Terraria, aes(x = t, y = freq)) +
   theme_minimal()
 
 ```
-
+```{r, echo = FALSE}
+checkIfInfluentialTag(ref_game_SlayTheSpire,cleaned_steam,"Roguelike Deckbuilder")
+```
 
 ## Game Study: Among Us (Social Deduction)
 
